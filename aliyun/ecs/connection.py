@@ -251,6 +251,65 @@ class EcsConnection(Connection):
                   'InstanceId': instance_id,
                   'SecurityGroupId': security_group_id})
 
+    def add_disk(self, instance_id, size=None, snapshot_id=None):
+        """Create and attach a non-durable disk to an instance.
+        A new disk will be allocated for the instance and attached as the next
+        available disk letter to the OS. The disk is a plain block device with
+        no partitions nor filesystems.
+
+        Either size or snapshot_id must be specified, but not both. If 
+        snapshot_id is specified, the size will be taken from the snapshot.
+
+        If the snapshot referenced was created before 15 July, 2013, the API
+        will throw an error of InvalidSnapshot.TooOld.
+
+        Args:
+            instance_id (str): ID of the instance to add the disk to.
+            size (int): Size of the disk in GB. Must be in the range [5-2048].
+            snapshot_id (str): The snapshot ID to create a disk from. 
+                               If used, the size will be taken from the snapshot
+                               and the given size will be disregarded.
+
+        Returns:
+            disk_id (str): the ID to reference the created disk.
+
+        Raises:
+            Error if size and snapshot_id are used.
+            Error InvalidSnapshot.TooOld if referenced snapshot is too old.
+
+        """
+
+        if size is not None and snapshot_id is not None:
+            raise Error("Use size or snapshot_id. Not both.")
+
+        params = {'Action': 'AddDisk', 'InstanceId': instance_id}
+
+        if size is not None:
+            params['Size'] = size
+
+        if snapshot_id is not None:
+            params['SnapshotId'] = snapshot_id
+
+        self.get(params)
+
+    def delete_disk(self, instance_id, disk_id):
+        """Delete a disk from an instance.
+
+        If the instance state is running, the disk will be removed after reboot.
+        If the instance state is stopped, the disk will be removed immediately.
+
+        Args:
+            instance_id (str): ID of the instance to delete a disk from.
+            disk_id (str): ID of the disk to delete.
+
+        """
+
+        self.get({
+                'Action': 'DeleteDisk',
+                'InstanceId': instance_id,
+                'DiskId': disk_id
+                })
+
     def create_instance(
             self, image_id, instance_type,
             security_group_id, instance_name=None,

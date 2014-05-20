@@ -192,7 +192,7 @@ class ImageTest(unittest.TestCase):
         i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
                        'i386', 'system', 'ubuntu', 'public')
         self.assertTrue(repr(i1).startswith(
-            u'<Image i1 for platform ubuntu12.04 and arch i386 at'))
+            u'<Image i1(standard image) for platform ubuntu12.04 and arch i3'))
 
 
 class SecurityGroupInfoTest(unittest.TestCase):

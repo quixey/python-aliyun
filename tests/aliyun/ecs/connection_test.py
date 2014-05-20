@@ -239,6 +239,28 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.leave_security_group('i1', 'sg1')
         self.mox.VerifyAll()
 
+    def testAddDiskSize(self):
+        self.conn.get({'Action': 'AddDisk',
+                       'InstanceId': 'i1',
+                       'Size': 5})
+        self.mox.ReplayAll()
+        self.conn.add_disk('i1', 5)
+        self.mox.VerifyAll()
+
+    def testAddDiskSnapshot(self):
+        self.conn.get({'Action': 'AddDisk',
+                       'InstanceId': 'i1',
+                       'SnapshotId': 'snap'})
+        self.mox.ReplayAll()
+        self.conn.add_disk('i1', snapshot_id='snap')
+        self.mox.VerifyAll()
+
+    def testAddDiskArgs(self):
+        try:
+            self.conn.add_disk('i1', size=5, snapshot_id='snap')
+        except ecs.Error, e:
+            self.assertTrue(e.message.startswith("Use size or snapshot_id."))
+
 
 class ModifyInstanceTest(EcsConnectionTest):
 
