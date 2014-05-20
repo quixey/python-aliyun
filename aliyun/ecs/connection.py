@@ -282,7 +282,10 @@ class EcsConnection(Connection):
         if size is not None and snapshot_id is not None:
             raise Error("Use size or snapshot_id. Not both.")
 
-        params = {'Action': 'AddDisk', 'InstanceId': instance_id}
+        params = {
+                'Action': 'AddDisk',
+                'InstanceId': instance_id
+            }
 
         if size is not None:
             params['Size'] = size
@@ -290,7 +293,7 @@ class EcsConnection(Connection):
         if snapshot_id is not None:
             params['SnapshotId'] = snapshot_id
 
-        self.get(params)
+        return self.get(params)
 
     def delete_disk(self, instance_id, disk_id):
         """Delete a disk from an instance.
@@ -363,6 +366,18 @@ class EcsConnection(Connection):
 
         return self.get(params)['InstanceId']
 
+    def allocate_public_ip(self, instance_id):
+        """Allocate and assign a public IP address to an instance.
+
+        Args:
+            instance_id (str): instance ID to add a public IP to.
+
+        Returns:
+            IpAddress: the public IP allocated to the instance.
+        """
+        return self.get({'Action': 'AllocatePublicIpAddress',
+                         'InstanceId': instance_id})
+
     def create_and_start_instance(
             self, image_id, instance_type,
             initial_security_group_id, additional_security_group_ids=[],
@@ -433,10 +448,7 @@ class EcsConnection(Connection):
 
         # Assign public IP if specified.
         if assign_public_ip:
-            self.get({
-                'Action': 'AllocatePublicIpAddress',
-                'InstanceId': instance_id
-            })
+            self.allocate_public_ip(instance_id)
 
         # Start the instance.
         self.logging.debug('Starting the instance: %s' % instance_id)
