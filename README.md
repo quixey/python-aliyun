@@ -49,11 +49,9 @@ conn = aliyun.ecs.connection.EcsConnection('cn-hangzhou')
 print conn.get_all_instance_ids()
 ```
 
-This module makes use of one as-yet undocummented API Action: ModifyInstanceSpec.
+This module makes use of one as-yet undocumented API Action: ModifyInstanceSpec.
 
 This module does not implement the following API Action: ResetDisk.
-
-See more at [ECS](ecs/README.md)
 
 SLB
 ---
