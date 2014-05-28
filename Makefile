@@ -32,4 +32,4 @@ deb: test
 docs: test
 	sphinx-apidoc --separate --full -H "python-aliyun" -A "Adam Gray, Akshay Dayal, North Bits" . -o docs/
 	rm -rf docs/tests* docs/setup*
-	python ./setup.py build_sphinx -a -s docs --build-dir docs/_build
+	python ./setup.py build_sphinx -a -s docs --build-dir docs

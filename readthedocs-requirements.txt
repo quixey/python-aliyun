@@ -1,0 +1,5 @@
+.
+nose>=1.3.0
+sphinx
+sphinxcontrib-napoleon
+sphinxcontrib-programoutput
