@@ -319,7 +319,8 @@ class EcsConnection(Connection):
             internet_max_bandwidth_in=None,
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
-            internet_charge_type=None):
+            internet_charge_type=None,
+            data_disks=[]):
         """Create an instance.
 
         Currently specifying additional data disks is not supported.
@@ -339,6 +340,8 @@ class EcsConnection(Connection):
                 Default: cloud.
             internet_charge_type (str): PayByBandwidth or PayByTraffic.
                 Default: PayByBandwidth.
+            data_disks (list): Two-tuples of (category, size or Snapshot ID).
+                E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
 
         Returns:
             The id of the instance created.
@@ -363,6 +366,13 @@ class EcsConnection(Connection):
             params['SystemDisk.Category'] = system_disk_type
         if internet_charge_type:
             params['InternetChargeType'] = internet_charge_type
+        if data_disks != []:
+            for i, disk in enumerate(data_disks):
+                params['DataDisk.%s.Category' % str(i+1)] = disk[0]
+                if isinstance(disk[1], int):
+                    params['DataDisk.%s.Size' % str(i+1)] = disk[1]
+                else:
+                    params['DataDisk.%s.SnapshotId' % str(i+1)] = disk[1]
 
         return self.get(params)['InstanceId']
 
@@ -385,7 +395,8 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            assign_public_ip=True, block_till_ready=True):
+            assign_public_ip=True, block_till_ready=True,
+            data_disks=[]):
         """Create and start an instance.
 
         This is a convenience method that does more than just create_instance.
@@ -416,6 +427,8 @@ class EcsConnection(Connection):
                 a public ip address. Default: True.
             block_till_ready (bool): Whether to block till the instance is
                 running. Default: True.
+            data_disks (list): Two-tuples of (category, size or Snapshot ID).
+                E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
 
         Returns:
             The id of the instance created.
@@ -437,7 +450,8 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=internet_max_bandwidth_out,
             hostname=hostname, password=password,
             system_disk_type=system_disk_type,
-            internet_charge_type=internet_charge_type)
+            internet_charge_type=internet_charge_type,
+            data_disks=data_disks)
 
         # Modify the security groups.
         if additional_security_group_ids:
