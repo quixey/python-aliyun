@@ -382,7 +382,11 @@ class CreateInstanceTest(EcsConnectionTest):
                        'HostName': 'hname',
                        'Password': 'pw',
                        'SystemDisk.Category': 'cloud',
-                       'InternetChargeType': 'PayByBandwidth'}).AndReturn(
+                       'InternetChargeType': 'PayByBandwidth',
+                       'DataDisk.1.Category': 'cloud',
+                       'DataDisk.1.Size': 5,
+                       'DataDisk.2.Category': 'ephemeral',
+                       'DataDisk.2.SnapshotId': 'snap'}).AndReturn(
             get_response)
 
         self.mox.ReplayAll()
@@ -392,7 +396,8 @@ class CreateInstanceTest(EcsConnectionTest):
                 'image', 'type', 'sg1', instance_name='name',
                 internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
                 hostname='hname', password='pw', system_disk_type='cloud',
-                internet_charge_type='PayByBandwidth'))
+                internet_charge_type='PayByBandwidth',
+                data_disks=[('cloud', 5), ('ephemeral', 'snap')]))
         self.mox.VerifyAll()
 
 
@@ -421,7 +426,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -439,7 +444,8 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1', instance_name='name',
             internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
             hostname='hname', password='pw', system_disk_type='cloud',
-            internet_charge_type='PayByBandwidth').AndReturn('i1')
+            internet_charge_type='PayByBandwidth',
+            data_disks=[('cloud', 5)]).AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.start_instance('i1')
 
@@ -449,7 +455,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
             hostname='hname', password='pw', system_disk_type='cloud',
             internet_charge_type='PayByBandwidth', assign_public_ip=False,
-            block_till_ready=False))
+            block_till_ready=False, data_disks=[('cloud', 5)]))
         self.mox.VerifyAll()
 
     def testWithAdditionalSecurityGroupsNoBlock(self):
@@ -457,7 +463,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.join_security_group('i1', 'sg2')
         self.conn.join_security_group('i1', 'sg3')
@@ -486,7 +492,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -514,7 +520,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -545,7 +551,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.join_security_group('i1', 'sg2')
         self.conn.join_security_group('i1', 'sg3')

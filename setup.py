@@ -18,7 +18,6 @@ from setuptools import setup, find_packages
 setup_requires = [
     'nose>=1.3.0',
     'sphinx',
-    'sphinxcontrib-napoleon',
     'sphinxcontrib-programoutput'
 ]
 
