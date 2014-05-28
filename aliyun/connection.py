@@ -75,6 +75,7 @@ def find_credentials():
         cp.read(cfg_path)
     else:
         cp.read('/etc/aliyun.cfg')
+
     if cp.has_section('default') and cp.has_option('default', 'access_key_id'):
         creds.access_key_id = cp.get('default', 'access_key_id')
         creds.secret_access_key = cp.get('default', 'secret_access_key')
@@ -127,8 +128,12 @@ class Connection(object):
         self.logging.debug("%s connection to %s created" % (service, region_id))
 
     def _percent_encode(self, request):
+        encoding = sys.stdin.encoding
+        if encoding == None:
+            encoding = sys.getdefaultencoding()
+
         res = urllib.quote(
-            request.decode(sys.stdin.encoding).encode('utf8'),
+            request.decode(encoding).encode('utf8'),
             '')
         res = res.replace('+', '%20')
         res = res.replace('*', '%2A')
