@@ -50,7 +50,7 @@ See more at :mod:`aliyun.ecs`
 Similarly for SLB, get the connection object like this::
 
     import aliyun.slb.connection
-    conn = aliyun.slb.connection.SlbConnection('cn-hangzou')
+    conn = aliyun.slb.connection.SlbConnection('cn-hangzhou')
     print conn.get_all_load_balancer_ids()
 
 See more at :mod:`aliyun.slb`

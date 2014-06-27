@@ -59,7 +59,7 @@ SLB
 Similarly for SLB, get the connection object like this:
 ```python
 import aliyun.slb.connection
-conn = aliyun.slb.connection.SlbConnection('cn-hangzou')
+conn = aliyun.slb.connection.SlbConnection('cn-hangzhou')
 print conn.get_all_load_balancer_ids()
 ```
 
