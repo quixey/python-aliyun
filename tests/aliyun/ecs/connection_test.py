@@ -255,6 +255,14 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.add_disk('i1', snapshot_id='snap')
         self.mox.VerifyAll()
 
+    def testDeleteDisk(self):
+        self.conn.get({'Action': 'DeleteDisk',
+                       'InstanceId': 'i1',
+                       'DiskId': 'd1'})
+        self.mox.ReplayAll()
+        self.conn.delete_disk('i1', 'd1')
+        self.mox.VerifyAll()
+
     def testAddDiskArgs(self):
         try:
             self.conn.add_disk('i1', size=5, snapshot_id='snap')
