@@ -24,7 +24,8 @@ from aliyun.ecs.model import (
     SecurityGroup,
     SecurityGroupInfo,
     SecurityGroupPermission,
-    Snapshot
+    Snapshot,
+    Zone
 )
 import dateutil.parser
 import logging

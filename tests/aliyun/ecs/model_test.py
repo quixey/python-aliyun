@@ -238,7 +238,7 @@ class SecurityGroupPermission(unittest.TestCase):
             u'<SecurityGroupPermission Accept TCP 22/22 from 1.1.1.1/32 at'))
 
 
-class SecurityGroup(unittest.TestCase):
+class SecurityGroupTest(unittest.TestCase):
 
     def testEqual(self):
         p1 = ecs.SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
@@ -265,3 +265,36 @@ class SecurityGroup(unittest.TestCase):
         self.assertTrue(repr(sg1).startswith(
             u'<SecurityGroup sg1, d at'))
 
+class ZoneTest(unittest.TestCase):
+
+    def testEqualSimple(self):
+        z1 = ecs.Zone('id1', 'name1')
+        z2 = ecs.Zone('id1', 'name1')
+        self.assertEqual(z1, z2)
+
+    def testEqualFull(self):
+        z1 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        z2 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        self.assertEqual(z1, z2)
+
+    def testNotEqual(self):
+        z1 = ecs.Zone('id1', 'name1')
+        z2 = ecs.Zone('id2', 'name2')
+        self.assertNotEqual(z1, z2)
+
+    def testNotEqualDeep(self):
+        z1 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        z2 = ecs.Zone('id1', 'name1', ['resource2'], ['disktype2'])
+        self.assertNotEqual(z1, z2)
+
+    def testRepr(self):
+        z = ecs.Zone('id', 'name')
+        self.assertTrue(repr(z).startswith('<Zone id (name) at'))
+
+    def testDiskSupported(self):
+        z1 = ecs.Zone('id', 'name', ['resource1'], ['disktype1'])
+        self.assertTrue(z1.disk_supported('disktype1'))
+
+    def testResourceCreationSupported(self):
+        z1 = ecs.Zone('id', 'name', ['resource1'], ['disktype1'])
+        self.assertTrue(z1.resource_creation_supported('resource1'))
