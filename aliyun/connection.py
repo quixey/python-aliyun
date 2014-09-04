@@ -108,7 +108,7 @@ class Connection(object):
         self.region_id = region_id
         if service == 'ecs':
             self.service = 'https://ecs.aliyuncs.com'
-            self.version = '2013-01-10'
+            self.version = '2014-05-26'
         elif service == 'slb':
             self.service = 'https://slb.aliyuncs.com'
             self.version = '2013-02-21'
