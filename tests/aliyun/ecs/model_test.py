@@ -60,7 +60,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [])
 
     def testEqual(self):
         instance2 = ecs.Instance(
@@ -75,7 +76,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [])
 
         self.assertEqual(self.instance1, instance2)
 
@@ -92,7 +94,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [])
 
         self.assertNotEqual(self.instance1, instance2)
 

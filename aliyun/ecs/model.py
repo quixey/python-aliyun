@@ -32,7 +32,6 @@ class Region(object):
         return (self.__class__ == other.__class__ and
                 self.__dict__ == other.__dict__)
 
-
 class Instance(object):
 
     """An Aliyun ECS instance."""
@@ -42,7 +41,7 @@ class Instance(object):
             hostname, status, security_group_ids, public_ip_addresses,
             internal_ip_addresses, internet_charge_type,
             internet_max_bandwidth_in, internet_max_bandwidth_out,
-            creation_time):
+            creation_time, description, cluster_id, operation_locks):
         """"Constructor.
 
         Args:
@@ -60,6 +59,9 @@ class Instance(object):
             internet_max_bandwidth_in (int): The max incoming bandwidth.
             internet_max_bandwidth_out (int): The max outgoing bandwidth.
             creation_time (datetime): Its creation time.
+            description (str): A long description of the instance.
+            operation_locks (list of str): Any held operation locks. 'security'
+                                           and/or 'financial'
         """
         self.instance_id = instance_id
         self.name = name
@@ -75,6 +77,8 @@ class Instance(object):
         self.internet_max_bandwidth_in = internet_max_bandwidth_in
         self.internet_max_bandwidth_out = internet_max_bandwidth_out
         self.creation_time = creation_time
+        self.description = description
+        self.operation_locks = operation_locks
 
     def __repr__(self):
         return '<Instance %s at %s>' % (self.instance_id, id(self))
@@ -163,7 +167,7 @@ class Disk(object):
             disk_type (str): The type of disk.
                 Values can be system or data.
             disk_category (str): The category of the disk.
-                Values can be cloud, ephemeral or ephemeral_hio.
+                Values can be cloud, ephemeral
             disk_size (int): Its size in GB.
         """
         self.disk_id = disk_id
@@ -295,3 +299,49 @@ class SecurityGroup(object):
         return (self.__class__ == other.__class__ and
                 self.__dict__ == other.__dict__)
 
+class Zone(object):
+
+    def __init__(self, zone_id, local_name, available_resource_creation=[],
+            available_disk_types=[]):
+        """Constructor.
+
+        Args:
+            zone_id (str): The id of the zone.
+            local_name (str): The local name of the zone.
+            available_resource_creation (list of 'Instance' and/or 'Disk'): The resource types which can be created in this zone.
+            available_disk_types (list of 'cloud' and/or 'ephemeral'): The types of disks which can be created in the zone.
+        """
+        self.zone_id = zone_id
+        self.local_name = local_name
+        self.available_resource_creation = available_resource_creation
+        self.available_disk_types = available_disk_types
+
+    def __repr__(self):
+        return u'<Zone %s (%s) at %s>' % (
+            self.zone_id, self.local_name, id(self))
+
+    def disk_supported(self, disk_type):
+        """Convenience method to say whether a disk type is supported.
+
+        Args:
+            disk_type (str): either 'cloud' or 'ephemeral'.
+
+        Returns:
+            boolean
+        """
+        return disk_type in self.available_disk_types
+
+    def resource_creation_supported(self, resource_type):
+        """Convenience method to say whether a resource can be created.
+
+        Args:
+            resource_type (str): either 'Instance' or 'Disk'
+
+        Returns:
+            Boolean. True if the resource creation is supported.
+        """
+        return resource_type in self.available_resource_creation
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)

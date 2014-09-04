@@ -75,9 +75,32 @@ class EcsConnection(Connection):
         """
         return [x.region_id for x in self.get_all_regions()]
 
-    def get_all_instance_status(self):
+    def get_all_zones(self):
+        """Get all availability zones in the region.
+
+        Returns:
+            List of Zone
+        """
+        resp = self.get({'Action': 'DescribeZones'})
+        zones = []
+        for zones in resp['Zones']['Zone']:
+            zones .append(Zone(zone['ZoneId'], zone['LocalName']))
+        return zones
+
+    def get_all_zone_ids(self):
+        """Get all availability zone ids in the region.
+
+        Returns:
+            List of zone id strings.
+        """
+        return [z.zone_id for z in self.get_all_zones()]
+
+    def get_all_instance_status(self, zone_id=None):
         """Get the instance statuses.
         
+        Args:
+            zone_id (str, optional): A specific zone id to get instances from.
+
         Returns:
             The list of InstanceStatus.
         """
@@ -85,6 +108,9 @@ class EcsConnection(Connection):
         params = {
             'Action': 'DescribeInstanceStatus'
         }
+
+        if zone_id != None:
+            params.update({'ZoneId': zone_id})
     
         for resp in self.get(params, paginated=True):
             for item in resp['InstanceStatuses']['InstanceStatus']:
@@ -92,13 +118,16 @@ class EcsConnection(Connection):
                     InstanceStatus(item['InstanceId'], item['Status']))
         return instance_status
 
-    def get_all_instance_ids(self):
+    def get_all_instance_ids(self, zone_id=None):
         """Get all the instance ids in a region.
+
+        Args:
+            zone_id (str, optional): The Zone ID to get instance ids from.
 
         Returns:
             The list of instance ids.
         """
-        return [x.instance_id for x in self.get_all_instance_status()]
+        return [x.instance_id for x in self.get_all_instance_status(zone_id)]
 
     def get_instance(self, instance_id):
         """Get an instance.
@@ -129,7 +158,10 @@ class EcsConnection(Connection):
             resp['InternetChargeType'],
             int(resp['InternetMaxBandwidthIn']),
             int(resp['InternetMaxBandwidthOut']),
-            dateutil.parser.parse(resp['CreationTime']))
+            dateutil.parser.parse(resp['CreationTime']),
+            resp['Description'],
+            resp['ClusterId'],
+            [x for x in resp['OperationLocks']['LockReason']])
 
     def start_instance(self, instance_id):
         """Start an instance.
