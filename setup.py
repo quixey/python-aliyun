@@ -27,7 +27,7 @@ tests_require = setup_requires + [
 ]
 
 setup(name='Aliyun',
-      version=0.5,
+      version=0.6,
       description='Python client for Aliyun APIs.',
       author='Adam Gray, Akshay Dayal, North Bits',
       author_email='adam@addumb.com, akshay@quixey.com',
