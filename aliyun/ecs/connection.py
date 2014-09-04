@@ -84,8 +84,12 @@ class EcsConnection(Connection):
         """
         resp = self.get({'Action': 'DescribeZones'})
         zones = []
-        for zones in resp['Zones']['Zone']:
-            zones .append(Zone(zone['ZoneId'], zone['LocalName']))
+        for zone in resp['Zones']['Zone']:
+            zid = zone['ZoneId']
+            zname = zone['LocalName']
+            resources = zone['AvailableResourceCreation']['ResourceTypes']
+            disks = zone['AvailableDiskCategories']['DiskTypes']
+            zones.append(Zone(zid, zname, resources, disks))
         return zones
 
     def get_all_zone_ids(self):
@@ -353,7 +357,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            data_disks=[]):
+            data_disks=[], description=None, zone_id=None):
         """Create an instance.
 
         Currently specifying additional data disks is not supported.
@@ -375,6 +379,9 @@ class EcsConnection(Connection):
                 Default: PayByBandwidth.
             data_disks (list): Two-tuples of (category, size or Snapshot ID).
                 E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
+            description (str): A long description of the instance.
+            zone_id (str): An Availability Zone in the region to put the instance in.
+                E.g. 'cn-hangzhou-b'
 
         Returns:
             The id of the instance created.
@@ -406,6 +413,10 @@ class EcsConnection(Connection):
                     params['DataDisk.%s.Size' % str(i+1)] = disk[1]
                 else:
                     params['DataDisk.%s.SnapshotId' % str(i+1)] = disk[1]
+        if description != None:
+            params['Description'] = description
+        if zone_id != None:
+            params['ZoneId'] = zone_id
 
         return self.get(params)['InstanceId']
 
@@ -429,7 +440,7 @@ class EcsConnection(Connection):
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
             assign_public_ip=True, block_till_ready=True,
-            data_disks=[]):
+            data_disks=[], description=None, zone_id=None):
         """Create and start an instance.
 
         This is a convenience method that does more than just create_instance.
@@ -462,6 +473,9 @@ class EcsConnection(Connection):
                 running. Default: True.
             data_disks (list): Two-tuples of (category, size or Snapshot ID).
                 E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
+            description (str): A long description of the instance.
+            zone_id (str): An Availability Zone in the region to put the instance in.
+                E.g. 'cn-hangzhou-b'
 
         Returns:
             The id of the instance created.
@@ -484,7 +498,7 @@ class EcsConnection(Connection):
             hostname=hostname, password=password,
             system_disk_type=system_disk_type,
             internet_charge_type=internet_charge_type,
-            data_disks=data_disks)
+            data_disks=data_disks, description=description, zone_id=zone_id)
 
         # Modify the security groups.
         if additional_security_group_ids:
