@@ -166,7 +166,8 @@ class EcsConnection(Connection):
             dateutil.parser.parse(resp['CreationTime']),
             resp['Description'],
             resp['ClusterId'],
-            [x for x in resp['OperationLocks']['LockReason']])
+            [x for x in resp['OperationLocks']['LockReason']],
+            resp['ZoneId'])
 
     def start_instance(self, instance_id):
         """Start an instance.

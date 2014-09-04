@@ -187,12 +187,13 @@ class GetInstanceTest(EcsConnectionTest):
             'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
             'Description': '',
             'ClusterId': '',
-            'OperationLocks': {'LockReason': []}
+            'OperationLocks': {'LockReason': []},
+            'ZoneId': 'z'
         }
         expected_result = ecs.Instance(
             'i1', 'name', 'image', 'r', 'type', 'hostname', 'running',
             ['sg1', 'sg2'], ['ip1', 'ip2'], ['ip3', 'ip4'], 'chargetype', 1, 2,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'), '', '', [])
+            dateutil.parser.parse('2014-02-05T00:52:32Z'), '', '', [], 'z')
         self.conn.get({'Action': 'DescribeInstanceAttribute',
                        'InstanceId': 'i1'}).AndReturn(get_response)
 
@@ -534,10 +535,10 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
     def testWithBlocking(self):
         instance_starting = ecs.Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         instance_running = ecs.Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
@@ -566,7 +567,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
     def testWithBlockingTimesOut(self):
         instance_starting = ecs.Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
@@ -595,10 +596,10 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
     def testWithAdditionalSecurityGroupsBlocking(self):
         instance_starting = ecs.Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         instance_running = ecs.Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,

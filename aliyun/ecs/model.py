@@ -41,7 +41,7 @@ class Instance(object):
             hostname, status, security_group_ids, public_ip_addresses,
             internal_ip_addresses, internet_charge_type,
             internet_max_bandwidth_in, internet_max_bandwidth_out,
-            creation_time, description, cluster_id, operation_locks):
+            creation_time, description, cluster_id, operation_locks, zone_id):
         """"Constructor.
 
         Args:
@@ -62,6 +62,7 @@ class Instance(object):
             description (str): A long description of the instance.
             operation_locks (list of str): Any held operation locks. 'security'
                                            and/or 'financial'
+            zone_id (str): The ID of the Availability Zone this instance is in.
         """
         self.instance_id = instance_id
         self.name = name
@@ -79,6 +80,7 @@ class Instance(object):
         self.creation_time = creation_time
         self.description = description
         self.operation_locks = operation_locks
+        self.zone_id = zone_id
 
     def __repr__(self):
         return '<Instance %s at %s>' % (self.instance_id, id(self))
