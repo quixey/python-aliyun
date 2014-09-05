@@ -161,8 +161,15 @@ class Snapshot(object):
 
 class Disk(object):
 
-    def __init__(self, disk_id, disk_type, disk_category, disk_size):
-        """Constructor.
+    def __init__(self, disk_id, disk_type, disk_category, disk_size,
+        attached_time=None, creation_time=None, delete_auto_snapshot=None,
+        delete_with_instance=None, description=None, detached_time=None,
+        device=None, image_id=None, instance_id=None, operation_locks=[],
+        portable=None, product_code=None, snapshot_id=None, status=None,
+        zone_id=None):
+
+        """ECS Disk object. Required arguments are always required when creating
+        an ECS disk.
 
         Args:
             disk_id (str): The id of the disk.
@@ -171,17 +178,54 @@ class Disk(object):
             disk_category (str): The category of the disk.
                 Values can be cloud, ephemeral
             disk_size (int): Its size in GB.
+            attached_time (datetime): The time the disk was last attached.
+            creation_time (datetime): The time the disk was created.
+            delete_auto_snapshot (bool): Whether the AutoSnapshotPolicy will be
+                                         deleted with the disk.
+            delete_with_instance (bool): Whether the Disk will be deleted with
+                                         its associated Instance.
+            description (str): A long description of the disk.
+            detached_time (datetie): The time the disk was last detached.
+            device (str): The device path if attached. E.g. /dev/xvdb
+            image_id (str): The Image id the Disk was created with.
+            instance_id (str): The Instance id the disk is attached to.
+            operation_locks (list): The locks on the resource. It can be
+                                    'Financial' and/or 'Security'.
+            portable (bool): Whether the Disk can be detached and re-attached
+                             elsewhere.
+            product_code (str): ID of the Disk in the ECS Mirror Market.
+            snapshot_id (str): ID of the snapshot the Disk was created from.
+            status (str): The status of the disk. E.g. "In_use", "Creating", &c.
+            zone_id (str): The Availability Zone of the Disk.
+
         """
         self.disk_id = disk_id
         self.disk_type = disk_type
         self.disk_category = disk_category
         self.disk_size = disk_size
+        self.attached_time = attached_time
+        self.creation_time = creation_time
+        self.delete_auto_snapshot = delete_auto_snapshot
+        self.delete_with_instance = delete_with_instance
+        self.description = description
+        self.detached_time = detached_time
+        self.device = device
+        self.image_id = image_id
+        self.instance_id = instance_id
+        self.operation_locks = operation_locks
+        self.portable = portable
+        self.product_code = product_code
+        self.snapshot_id = snapshot_id
+        self.status = status
+        self.zone_id = zone_id
 
     def __repr__(self):
         return u'<Disk %s of type %s is %sGB at %s>' % (
             self.disk_id, self.disk_type, self.disk_size, id(self))
 
     def __eq__(self, other):
+        print self.__dict__
+        print other.__dict__
         return (self.__class__ == other.__class__ and
                 self.__dict__ == other.__dict__)
 

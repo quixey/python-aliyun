@@ -653,28 +653,109 @@ class DescribeInstanceTypesTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
 
-class DescribeInstanceDisksTest(EcsConnectionTest):
+class DescribeDisksTest(EcsConnectionTest):
 
     def testSuccess(self):
-        get_response = {
+        now = "2014-09-03T23:37:37Z"
+        get_response = [{
             'Disks': {
                 'Disk': [
-                    {'DiskId': 'd1', 'Type': 'system',
-                     'Category': 'cloud', 'Size': '20'},
-                    {'DiskId': 'd2', 'Type': 'data',
-                     'Category': 'ephemeral', 'Size': '100'}
+                    {
+                        "AttachedTime": now,
+                        "Category":"cloud",
+                        "CreationTime": now,
+                        "DeleteAutoSnapshot":"true",
+                        "DeleteWithInstance":"true",
+                        "Description":"",
+                        "DetachedTime":"",
+                        "Device":"/dev/xvda",
+                        "DiskId":"d1",
+                        "DiskName":"",
+                        "ImageId":"image-id.vhd",
+                        "InstanceId":"i-id",
+                        "OperationLocks":{
+                            "OperationLock":[]
+                        },
+                        "Portable":"false",
+                        "ProductCode":"",
+                        "Size":20,
+                        "SourceSnapshotId":"",
+                        "Status":"In_use",
+                        "Type":"system",
+                        "ZoneId":"zid"
+                    },
+                    {
+                        "AttachedTime": now,
+                        "Category":"ephemeral",
+                        "CreationTime": now,
+                        "DeleteAutoSnapshot":"true",
+                        "DeleteWithInstance":"true",
+                        "Description":"",
+                        "DetachedTime":"",
+                        "Device":"/dev/xvda",
+                        "DiskId":"d2",
+                        "DiskName":"",
+                        "ImageId":"image-id.vhd",
+                        "InstanceId":"i-id",
+                        "OperationLocks":{
+                            "OperationLock":[]
+                        },
+                        "Portable":"false",
+                        "ProductCode":"",
+                        "Size":100,
+                        "SourceSnapshotId":"",
+                        "Status":"In_use",
+                        "Type":"data",
+                        "ZoneId":"zid"
+                    }
                 ]
             }
-        }
-        expected_result = [ecs.Disk('d1', 'system', 'cloud', 20),
-                           ecs.Disk('d2', 'data', 'ephemeral', 100)]
-        self.conn.get({'Action': 'DescribeInstanceDisks',
-                       'InstanceId': 'i1'}).AndReturn(get_response)
+        },
+         {
+            'Disks': {
+                'Disk': [
+                    {
+                        "AttachedTime": "",
+                        "Category":"cloud",
+                        "CreationTime": "",
+                        "DeleteAutoSnapshot":"",
+                        "DeleteWithInstance":"",
+                        "Description":"",
+                        "DetachedTime":"",
+                        "Device":"",
+                        "DiskId":"d3",
+                        "DiskName":"",
+                        "ImageId":"",
+                        "InstanceId":"",
+                        "OperationLocks":{
+                            "OperationLock":[]
+                        },
+                        "Portable":"",
+                        "ProductCode":"",
+                        "Size":20,
+                        "SourceSnapshotId":"",
+                        "Status":"",
+                        "Type":"system",
+                        "ZoneId":""
+                    }
+                ]
+            }
+        }]
+        nowtime = dateutil.parser.parse(now)
+        d1 = ecs.Disk('d1', 'system', 'cloud', 20, nowtime, nowtime, True, True, None, 
+                None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                'In_use', 'zid')
+        d2 = ecs.Disk('d2', 'data', 'ephemeral', 100, nowtime, nowtime, True, True, None,
+                None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                'In_use', 'zid')
+        d3 = ecs.Disk('d3', 'system', 'cloud', 20)
+        self.conn.get({'Action': 'DescribeDisks',
+                       'InstanceId': 'i-id'}, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(
-            expected_result,
-            self.conn.describe_instance_disks('i1'))
+            [d1, d2, d3],
+            self.conn.describe_disks(instance_id='i-id'))
         self.mox.VerifyAll()
 
 

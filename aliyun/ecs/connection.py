@@ -534,6 +534,63 @@ class EcsConnection(Connection):
 
         return instance_id
 
+    def describe_disks(self, zone_id=None, disk_ids=None, instance_id=None,
+            disk_type=None, category=None, status=None, snapshot_id=None,
+            portable=None, delete_with_instance=None,
+            delete_auto_snapshot=None):
+        """List the disks in the region. All arguments are optional to allow
+        restricting the disks retrieved.
+
+        Args:
+            zone_id (str): Availability Zone of the disks.
+            disk_ids (list of str): List of disk ids to retrieve.
+            instance_id (str): ID of instance retrieved disks are attached to.
+            disk_type (str): "system", "data", or "all" (default).
+            category (str): "cloud", "ephemeral", or "all" (default).
+            status (str): Restrict to disks only with this status.
+                          "In_use", "Available", "Attaching", "Detaching",
+                          "Creating", "ReIniting", or "All" (default).
+            snapshot_id (str): Snapshot used to create the disk.
+            portable (bool): Whether the disk can be detached and re-attached
+                             elsewhere.
+            delete_with_instance (bool): Whether the disk will be deleted with
+                                         its associated instance.
+            delete_auto_snapshot (bool): Whether the AutoSnapshotPolicy will be
+                                         deleted with the Disk.
+
+        Returns:
+            List of Disk objects.
+        """
+        disks = []
+        params = {'Action': 'DescribeDisks'}
+        if zone_id != None: params['ZoneId'] = zone_id
+        if disk_ids != None: params['DiskIds'] = disk_ids
+        if instance_id != None: params['InstanceId'] = instance_id
+
+
+        for resp in self.get(params, paginated=True):
+            for disk in resp['Disks']['Disk']:
+                disks.append(Disk(disk['DiskId'],
+                      disk['Type'],
+                      disk['Category'],
+                      disk['Size'],
+                      dateutil.parser.parse(disk['AttachedTime']) if disk['AttachedTime'] != '' else None,
+                      dateutil.parser.parse(disk['CreationTime']) if disk['CreationTime'] != '' else None,
+                      disk['DeleteAutoSnapshot'] == 'true' if disk['DeleteAutoSnapshot'] != '' else None,
+                      disk['DeleteWithInstance'] == 'true' if disk['DeleteWithInstance'] != '' else None,
+                      disk['Description'] if disk['Description'] != '' else None,
+                      dateutil.parser.parse(disk['DetachedTime']) if disk['DetachedTime'] != '' else None,
+                      disk['Device'] if disk['Device'] != '' else None,
+                      disk['ImageId'] if disk['ImageId'] != '' else None,
+                      disk['InstanceId'] if disk['InstanceId'] != '' else None,
+                      disk['OperationLocks']['OperationLock'],
+                      disk['Portable'] == 'true' if disk['Portable'] != '' else None,
+                      disk['ProductCode'] if disk['ProductCode'] != '' else None,
+                      disk['SourceSnapshotId'] if disk['SourceSnapshotId'] != '' else None,
+                      disk['Status'] if disk['Status'] != '' else None,
+                      disk['ZoneId'] if disk['ZoneId'] != '' else None))
+        return disks
+
     def describe_instance_types(self):
         """List the instance types available.
 
@@ -552,6 +609,7 @@ class EcsConnection(Connection):
 
     def describe_instance_disks(self, instance_id):
         """List the disks associated with an instance.
+        This is now only a helper method which calls describe_disks with an ID.
 
         Args:
             instance_id (str): The id of the instance.
@@ -559,14 +617,7 @@ class EcsConnection(Connection):
         Returns:
             List of Disk.
         """
-        disks = []
-        resp = self.get({'Action': 'DescribeInstanceDisks',
-                         'InstanceId': instance_id})
-        for disk in resp['Disks']['Disk']:
-            disks.append(Disk(disk['DiskId'], disk['Type'],
-                              disk['Category'], int(disk['Size'])))
-
-        return disks
+        return self.describe_disks(instance_id=instance_id)
 
     def delete_snapshot(self, instance_id, disk_id, snapshot_id):
         """Delete a snapshot.
