@@ -79,17 +79,18 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--secret-access-key', help='secret access key')
     parser.add_argument('-r', '--region_id', help='region id to connect to')
     parser.add_argument('--log-level', default='INFO')
-    parser.add_argument('remainder', nargs=argparse.REMAINDER)
+    parser.add_argument('-S', '--service', help='the API service to use.', choices=['ecs', 'slb'])
+    parser.add_argument('remainder', nargs='+')
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
-    c = aliyun.connection.Connection(args.region_id, args.remainder[0], 
+    c = aliyun.connection.Connection(args.region_id, args.service,
                           access_key_id=args.access_key_id,
                           secret_access_key=args.secret_access_key)
 
     # Take all other params that are key value and make request params.
-    params = dict([tuple(arg.split('=')) for arg in args.remainder[1:] if '=' in arg])
+    params = dict([tuple(arg.split('=')) for arg in args.remainder if '=' in arg])
 
     result = c.get(params)
     print json.dumps(result, indent=4, sort_keys=True, separators=(',',':'), ensure_ascii=False)
