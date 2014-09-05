@@ -267,6 +267,22 @@ class EcsConnection(Connection):
 
         self.get(params)
 
+    def replace_system_disk(self, instance_id, image_id):
+        """Replace an Instance's system disk to the given Image.
+
+        Args:
+            instance_id (str): ID of the Instance to replace.
+            image_id (str): ID of the Image to use for the new system disk.
+
+        Returns:
+            ID of the new disk.
+        """
+        return self.get({
+            'Action': 'ReplaceSystemDisk',
+            'InstanceId': instance_id,
+            'ImageId': image_id
+            })['DiskId']
+
     def join_security_group(self, instance_id, security_group_id):
         """Add an instance to a security group.
 
@@ -289,8 +305,103 @@ class EcsConnection(Connection):
                   'InstanceId': instance_id,
                   'SecurityGroupId': security_group_id})
 
-    def add_disk(self, instance_id, size=None, snapshot_id=None):
+    def create_disk(self, zone_id, name=None, description=None, size=None,
+            snapshot_id=None):
+        """Create a non-durable disk.
+        A new disk will be created and can be managed independently of instance.
+        
+        Either size or snapshot_id must be specified, but not both. If 
+        snapshot_id is specified, the size will be taken from the snapshot.
+
+        If the snapshot referenced was created before 15 July, 2013, the API
+        will throw an error of InvalidSnapshot.TooOld.
+
+        Args:
+            zone_id (str): the Availability Zone to create the disk in. This is
+                           required and cannot be changed. E.g. cn-hangzhou-a.
+            name (str): A short name for the disk.
+            description (str): A longer description of the disk.
+            size (int): Size of the disk in GB. Must be in the range [5-2048].
+            snapshot_id (str): The snapshot ID to create a disk from. 
+                               If used, the size will be taken from the snapshot
+                               and the given size will be disregarded.
+
+        Returns:
+            disk_id (str): The ID to reference the created disk.
+        """
+        if size is not None and snapshot_id is not None:
+            raise Error("Use size or snapshot_id. Not both.")
+
+        params = {
+                'Action': 'CreateDisk',
+                'ZoneId': zone_id
+            }
+
+        if size is not None:
+            params['Size'] = size
+
+        if snapshot_id is not None:
+            params['SnapshotId'] = snapshot_id
+
+        if name is not None:
+            params['DiskName'] = name
+
+        if description is not None:
+            params['Description'] = description
+
+        return self.get(params)['DiskId']
+
+    def attach_disk(self, instance_id, disk_id, device=None,
+            delete_with_instance=None):
+        """Attach an existing disk to an existing instance.
+        The disk and instance must already exist. The instance must be in the
+        Stopped state, or the disk will be attached at next reboot.
+
+        The disk will be attached at the next available drive letter (e.g. 
+        in linux, /dev/xvdb if only /dev/xvda exists). It will be a raw and
+        un-formatted block device.
+
+        Args:
+            instance_id (str): ID of the instance to add the disk to.
+            disk_id (str): ID of the disk to delete.
+            device (str): The full device path for the attached device. E.g.
+                          /dev/xvdb. Valid values: /dev/xvd[b-z].
+            delete_with_instance (bool): Whether to delete the disk when its
+                                         associated instance is deleted.
+        """
+
+        params = {
+                'Action': 'AttachDisk',
+                'InstanceId': instance_id,
+                'DiskId': disk_id
+                }
+        if device is not None:
+            params['Device'] = device
+        if delete_with_instance is not None:
+            params['DeleteWithInstance'] = delete_with_instance
+
+        self.get(params)
+
+    def detach_disk(self, instance_id, disk_id):
+        """Detach an existing disk from an existing instance.
+
+        Args:
+            instance_id (str): ID of the instance to add the disk to.
+            disk_id (str): ID of the disk to delete.
+        """
+
+        self.get({
+                'Action': 'DetachDisk',
+                'InstanceId': instance_id,
+                'DiskId': disk_id
+                })
+
+    def add_disk(self, instance_id, size=None, snapshot_id=None, name=None,
+            description=None, device=None, delete_with_instance=None):
         """Create and attach a non-durable disk to an instance.
+
+        This is convenience method, combining create_disk and attach_disk.
+
         A new disk will be allocated for the instance and attached as the next
         available disk letter to the OS. The disk is a plain block device with
         no partitions nor filesystems.
@@ -307,6 +418,11 @@ class EcsConnection(Connection):
             snapshot_id (str): The snapshot ID to create a disk from. 
                                If used, the size will be taken from the snapshot
                                and the given size will be disregarded.
+            name (str): A short name for the disk.
+            description (str): A longer description of the disk.
+            device (str): The full device path for the attached device. E.g.
+                          /dev/xvdb. Valid values: /dev/xvd[b-z].
+            delete_with_instance (bool): Whether to delete the disk when its
 
         Returns:
             disk_id (str): the ID to reference the created disk.
@@ -317,21 +433,11 @@ class EcsConnection(Connection):
 
         """
 
-        if size is not None and snapshot_id is not None:
-            raise Error("Use size or snapshot_id. Not both.")
+        zone = self.get_instance(instance_id).zone_id
+        disk = self.create_disk(zone, name, description, size, snapshot_id)
+        self.attach_disk(instance_id, disk, device, delete_with_instance)
 
-        params = {
-                'Action': 'AddDisk',
-                'InstanceId': instance_id
-            }
-
-        if size is not None:
-            params['Size'] = size
-
-        if snapshot_id is not None:
-            params['SnapshotId'] = snapshot_id
-
-        return self.get(params)
+        return disk
 
     def delete_disk(self, instance_id, disk_id):
         """Delete a disk from an instance.
@@ -618,6 +724,37 @@ class EcsConnection(Connection):
             List of Disk.
         """
         return self.describe_disks(instance_id=instance_id)
+
+    def modify_disk(self, disk_id, name=None, description=None,
+            delete_with_instance=None):
+        """Modify information about a disk.
+
+        Args:
+            disk_id (str): The Disk to modify/update.
+            name (str): The new disk name.
+            description (str): The new disk description.
+            delete_with_instance (str): Change whether to delete the disk with
+                                        its associated instance.
+
+        """
+        params = {'Action': 'ModifyDiskAttribute',
+                  'DiskId': disk_id}
+        if name is not None:
+            params['DiskName'] = name
+        if description is not None:
+            params['Description'] = description
+        if delete_with_instance is not None:
+            params['DeleteWithInstance'] = delete_with_instance
+
+        self.get(params)
+
+    def reinit_disk(self, disk_id):
+        """Re-initialize a disk to it's original Image.
+
+        Args:
+            disk_id (str): ID of the Disk to re-initialize.
+        """
+        self.get({'Action': 'ReInitDisk', 'DiskId': disk_id})
 
     def delete_snapshot(self, instance_id, disk_id, snapshot_id):
         """Delete a snapshot.

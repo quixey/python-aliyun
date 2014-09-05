@@ -32,6 +32,10 @@ from aliyun.ecs.model import (
 
 from aliyun.ecs import connection as ecs
 
+class MockEcsInstance(object):
+    def __init__(self, instance_id, zone_id):
+        self.instance_id = instance_id
+        self.zone_id = zone_id
 
 class EcsConnectionTest(unittest.TestCase):
 
@@ -112,6 +116,17 @@ class GetAllZonesTest(EcsConnectionTest):
 
         self.mox.VerifyAll()
 
+    def testZoneIds(self):
+        z1 = ecs.Zone('z1', 'l1')
+        z2 = ecs.Zone('z2', 'l2')
+        self.mox.StubOutWithMock(self.conn, 'get_all_zones')
+        self.conn.get_all_zones().AndReturn([z1, z2])
+        self.mox.ReplayAll()
+
+        self.assertEqual(['z1', 'z2'], self.conn.get_all_zone_ids())
+
+        self.mox.VerifyAll()
+
 class GetAllInstanceStatusTest(EcsConnectionTest):
 
     def testSuccess(self):
@@ -133,13 +148,14 @@ class GetAllInstanceStatusTest(EcsConnectionTest):
         expected_result = [ecs.InstanceStatus('i1', 'running'),
                            ecs.InstanceStatus('i2', 'stopped'),
                            ecs.InstanceStatus('i3', 'running')]
-        self.conn.get({'Action': 'DescribeInstanceStatus'},
+        self.conn.get({'Action': 'DescribeInstanceStatus', 'ZoneId': 'z'},
                       paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.get_all_instance_status())
+                         self.conn.get_all_instance_status(zone_id='z'))
         self.mox.VerifyAll()
+
 
     def testGetIds(self):
         get_response = [{
@@ -257,6 +273,15 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.delete_instance('i1')
         self.mox.VerifyAll()
 
+    def testReplaceSystemDisk(self):
+        self.conn.get({
+            'Action': 'ReplaceSystemDisk',
+            'InstanceId': 'i',
+            'ImageId': 'img'}).AndReturn({'DiskId': 'd'})
+        self.mox.ReplayAll()
+        self.assertEqual('d', self.conn.replace_system_disk('i', 'img'))
+        self.mox.VerifyAll()
+
     def testJoinSecurityGroup(self):
         self.conn.get({'Action': 'JoinSecurityGroup',
                        'InstanceId': 'i1',
@@ -275,20 +300,48 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.leave_security_group('i1', 'sg1')
         self.mox.VerifyAll()
 
-    def testAddDiskSize(self):
-        self.conn.get({'Action': 'AddDisk',
-                       'InstanceId': 'i1',
-                       'Size': 5})
+class DiskActionsTest(EcsConnectionTest):
+
+    def testCreateDiskSizeFull(self):
+        self.conn.get({'Action': 'CreateDisk',
+                       'ZoneId': 'z1',
+                       'DiskName': 'name',
+                       'Description': 'desc',
+                       'Size': 5}).AndReturn({'DiskId': 'd'})
         self.mox.ReplayAll()
-        self.conn.add_disk('i1', 5)
+        self.conn.create_disk('z1', 'name', 'desc', 5, None)
         self.mox.VerifyAll()
 
-    def testAddDiskSnapshot(self):
-        self.conn.get({'Action': 'AddDisk',
-                       'InstanceId': 'i1',
-                       'SnapshotId': 'snap'})
+    def testCreateDiskSnapshot(self):
+        self.conn.get({'Action': 'CreateDisk',
+                       'ZoneId': 'z1',
+                       'SnapshotId': 'snap'}).AndReturn({'DiskId': 'd1'})
         self.mox.ReplayAll()
-        self.conn.add_disk('i1', snapshot_id='snap')
+        self.assertEqual('d1', self.conn.create_disk('z1', snapshot_id='snap'))
+        self.mox.VerifyAll()
+
+    def testAttachDisk(self):
+        self.conn.get({'Action': 'AttachDisk',
+                       'InstanceId': 'i1',
+                       'Device': 'dev',
+                       'DeleteWithInstance': True,
+                       'DiskId': 'd1'})
+        self.mox.ReplayAll()
+        self.conn.attach_disk('i1', 'd1', 'dev', True)
+        self.mox.VerifyAll()
+
+    def testAddDisk(self):
+        self.mox.StubOutWithMock(self.conn, 'get_instance')
+        self.conn.get_instance('i1').AndReturn(MockEcsInstance('i1', 'z1'))
+        self.mox.StubOutWithMock(self.conn, 'create_disk')
+        self.conn.create_disk('z1', 'name', 'desc', None, 'snap').AndReturn('d')
+        self.mox.StubOutWithMock(self.conn, 'attach_disk')
+        self.conn.attach_disk('i1', 'd', 'dev', True)
+        self.mox.ReplayAll()
+
+        d = self.conn.add_disk('i1', None, 'snap', 'name', 'desc', 'dev', True)
+        self.assertEqual(d, 'd')
+
         self.mox.VerifyAll()
 
     def testDeleteDisk(self):
@@ -299,12 +352,47 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.delete_disk('i1', 'd1')
         self.mox.VerifyAll()
 
-    def testAddDiskArgs(self):
+    def testCreateDiskArgs(self):
         try:
-            self.conn.add_disk('i1', size=5, snapshot_id='snap')
+            self.conn.create_disk('i1', size=5, snapshot_id='snap')
         except ecs.Error, e:
             self.assertTrue(e.message.startswith("Use size or snapshot_id."))
 
+    def testDetachDisk(self):
+        self.conn.get({'Action': 'DetachDisk',
+                       'InstanceId': 'i',
+                       'DiskId': 'd'})
+        self.mox.ReplayAll()
+
+        self.conn.detach_disk('i', 'd')
+
+        self.mox.VerifyAll()
+
+    def testModifyDisk(self):
+        self.conn.get({'Action': 'ModifyDiskAttribute',
+                       'DiskId': 'd',
+                       'DiskName': 'name',
+                       'Description': 'desc',
+                       'DeleteWithInstance': True})
+        self.mox.ReplayAll()
+        self.conn.modify_disk('d', 'name', 'desc', True)
+        self.mox.VerifyAll()
+
+    def testReInitDisk(self):
+        self.conn.get({'Action': 'ReInitDisk', 'DiskId': 'd'})
+        self.mox.ReplayAll()
+        self.conn.reinit_disk('d')
+        self.mox.VerifyAll()
+
+    def testInstanceDisks(self):
+        d1 = ecs.Disk('d1', 'system', 'cloud', 20)
+        d2 = ecs.Disk('d2', 'system', 'cloud', 20)
+        d3 = ecs.Disk('d3', 'system', 'cloud', 20)
+        self.mox.StubOutWithMock(self.conn, 'describe_disks')
+        self.conn.describe_disks(instance_id='i').AndReturn([d1, d2, d3])
+        self.mox.ReplayAll()
+        self.assertEqual([d1, d2, d3], self.conn.describe_instance_disks('i'))
+        self.mox.VerifyAll()
 
 class ModifyInstanceTest(EcsConnectionTest):
 
