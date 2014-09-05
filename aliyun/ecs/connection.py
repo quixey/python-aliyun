@@ -88,7 +88,7 @@ class EcsConnection(Connection):
             zid = zone['ZoneId']
             zname = zone['LocalName']
             resources = zone['AvailableResourceCreation']['ResourceTypes']
-            disks = zone['AvailableDiskCategories']['DiskTypes']
+            disks = zone['AvailableDiskCategories']['DiskCategories']
             zones.append(Zone(zid, zname, resources, disks))
         return zones
 
@@ -99,6 +99,18 @@ class EcsConnection(Connection):
             List of zone id strings.
         """
         return [z.zone_id for z in self.get_all_zones()]
+
+    def get_all_clusters(self):
+        """Get a list of ECS clusters in the region.
+
+        Returns:
+            List of cluster IDs.
+        """
+        params = {'Action': 'DescribeClusters'}
+        clusters = []
+        for cluster in self.get(params)['Clusters']['Cluster']:
+            clusters.append(cluster['ClusterId'])
+        return clusters
 
     def get_all_instance_status(self, zone_id=None):
         """Get the instance statuses.
@@ -211,7 +223,7 @@ class EcsConnection(Connection):
 
     def modify_instance(self, instance_id, new_instance_name=None,
                         new_password=None, new_hostname=None,
-                        new_security_group_id=None):
+                        new_security_group_id=None, new_description=None):
         """Modify certain attributes of an instance.
 
         Only attributes that you want to modify should be specified.
@@ -225,6 +237,7 @@ class EcsConnection(Connection):
                 This requires a reboot to take effect.
             new_hostname (str): The new hostname for the instance.
             new_security_group_id (str): A single security group id.
+            new_description (str): The new description for the instance.
         """
         params = {'Action': 'ModifyInstanceAttribute',
                   'InstanceId': instance_id}
@@ -236,6 +249,8 @@ class EcsConnection(Connection):
             params['HostName'] = new_hostname
         if new_security_group_id:
             params['SecurityGroupId'] = new_security_group_id
+        if new_description:
+            params['Description'] = new_description
 
         self.get(params)
 
@@ -439,7 +454,20 @@ class EcsConnection(Connection):
 
         return disk
 
-    def delete_disk(self, instance_id, disk_id):
+    def reset_disk(self, disk_id, snapshot_id):
+        """Reset a disk to its snapshot.
+
+        Args:
+            disk_id (str): Disk ID to reset.
+            snapshot_id (str): ID of snapshot to reset the disk to.
+        """
+        self.get({
+            'Action': 'ResetDisk',
+            'DiskId': disk_id,
+            'SnapshotId': snapshot_id
+            }) 
+
+    def delete_disk(self, disk_id):
         """Delete a disk from an instance.
 
         If the instance state is running, the disk will be removed after reboot.
@@ -453,7 +481,6 @@ class EcsConnection(Connection):
 
         self.get({
                 'Action': 'DeleteDisk',
-                'InstanceId': instance_id,
                 'DiskId': disk_id
                 })
 
@@ -800,7 +827,7 @@ class EcsConnection(Connection):
         resp = self.get({'Action': 'DescribeSnapshots',
                          'InstanceId': instance_id,
                          'DiskId': disk_id})
-        for snapshot in resp['Snapshots']['Snapshot']:
+        for snapshot in resp['Snapshots']['SnapshotResource']:
             snapshots.append(Snapshot(
                 snapshot['SnapshotId'],
                 snapshot[
