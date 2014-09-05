@@ -94,7 +94,7 @@ class GetAllZonesTest(EcsConnectionTest):
                             'ResourceTypes': [ 'Disk', 'Instance']
                         },
                         'AvailableDiskCategories': {
-                            'DiskTypes': ['cloud', 'ephemeral']
+                            'DiskCategories': ['cloud', 'ephemeral']
                         }
                     },
                     {'ZoneId': 'z2', 'LocalName': 'l2', 
@@ -102,7 +102,7 @@ class GetAllZonesTest(EcsConnectionTest):
                             'ResourceTypes': [ 'Instance']
                         },
                         'AvailableDiskCategories': {
-                            'DiskTypes': []
+                            'DiskCategories': []
                         }
                     }]
                 }
@@ -125,6 +125,17 @@ class GetAllZonesTest(EcsConnectionTest):
 
         self.assertEqual(['z1', 'z2'], self.conn.get_all_zone_ids())
 
+        self.mox.VerifyAll()
+
+class GetAllClustersTest(EcsConnectionTest):
+    def testGetAllClusters(self):
+        resp = {'Clusters': {'Cluster': [
+            {'ClusterId': 'c1'},
+            {'ClusterId': 'c2'}
+            ]}}
+        self.conn.get({'Action': 'DescribeClusters'}).AndReturn(resp)
+        self.mox.ReplayAll()
+        self.assertEqual(['c1', 'c2'], self.conn.get_all_clusters())
         self.mox.VerifyAll()
 
 class GetAllInstanceStatusTest(EcsConnectionTest):
@@ -344,12 +355,17 @@ class DiskActionsTest(EcsConnectionTest):
 
         self.mox.VerifyAll()
 
+    def testResetDisk(self):
+        self.conn.get({'Action': 'ResetDisk', 'DiskId': 'd', 'SnapshotId': 's'})
+        self.mox.ReplayAll()
+        self.conn.reset_disk('d', 's')
+        self.mox.VerifyAll()
+
     def testDeleteDisk(self):
         self.conn.get({'Action': 'DeleteDisk',
-                       'InstanceId': 'i1',
                        'DiskId': 'd1'})
         self.mox.ReplayAll()
-        self.conn.delete_disk('i1', 'd1')
+        self.conn.delete_disk('d1')
         self.mox.VerifyAll()
 
     def testCreateDiskArgs(self):
@@ -396,54 +412,20 @@ class DiskActionsTest(EcsConnectionTest):
 
 class ModifyInstanceTest(EcsConnectionTest):
 
-    def testModifyInstanceName(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'InstanceName': 'name'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_instance_name='name')
-        self.mox.VerifyAll()
-
-    def testModifyPassword(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'Password': 'pw'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_password='pw')
-        self.mox.VerifyAll()
-
-    def testModifyHostname(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'HostName': 'name'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_hostname='name')
-        self.mox.VerifyAll()
-
-    def testModifySecurityGroupId(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'SecurityGroupId': 'sg1'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_security_group_id='sg1')
-        self.mox.VerifyAll()
-
     def testModifyAll(self):
         self.conn.get({'Action': 'ModifyInstanceAttribute',
                        'InstanceId': 'i1',
                        'InstanceName': 'name',
                        'Password': 'pw',
                        'HostName': 'name',
-                       'SecurityGroupId': 'sg1'})
+                       'SecurityGroupId': 'sg1',
+                       'Description': 'desc'})
 
         self.mox.ReplayAll()
         self.conn.modify_instance(
             'i1', new_instance_name='name', new_password='pw',
-            new_hostname='name', new_security_group_id='sg1')
+            new_hostname='name', new_security_group_id='sg1',
+            new_description='desc')
         self.mox.VerifyAll()
 
 class ModifyInstanceSpecTest(EcsConnectionTest):
@@ -901,7 +883,7 @@ class DescribeSnapshotsTest(EcsConnectionTest):
     def testSuccess(self):
         get_response = {
             'Snapshots': {
-                'Snapshot': [
+                'SnapshotResource': [
                     {'SnapshotId': 's1',
                      'SnapshotName': 'n1',
                      'Progress': '100',

@@ -21,7 +21,7 @@ clean:
 	mkdir build
 
 test: clean
-	python ./setup.py nosetests -v --with-coverage --cover-package aliyun --cover-xml --cover-xml-file=build/coverage.xml
+	python ./setup.py nosetests --verbosity 2 --tests tests/unit --with-coverage --cover-package aliyun --cover-xml --cover-xml-file=build/coverage.xml
 	mv *.egg-info build/
 
 deb: test
