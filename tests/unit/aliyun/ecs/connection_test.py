@@ -505,6 +505,10 @@ class CreateInstanceTest(EcsConnectionTest):
                        'ZoneId': 'test-zone-a'}).AndReturn(
             get_response)
 
+        disks = [
+            {'category': 'cloud', 'size': 5},
+            {'category': 'ephemeral', 'snapshot_id': 'snap'}
+        ]
         self.mox.ReplayAll()
         self.assertEqual(
             'i1',
@@ -513,8 +517,7 @@ class CreateInstanceTest(EcsConnectionTest):
                 internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
                 hostname='hname', password='pw', system_disk_type='cloud',
                 internet_charge_type='PayByBandwidth',
-                data_disks=[('cloud', 5), ('ephemeral', 'snap')],
-                description='desc', zone_id='test-zone-a'))
+                data_disks=disks, description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
 
 
@@ -997,110 +1000,77 @@ class CreateSnapshotTest(EcsConnectionTest):
 class DescribeImagesTest(EcsConnectionTest):
 
     def testSimpleQuery(self):
-        get_response = [{
-            'Images': {
-                'Image': [
-                    {'ImageId': 'i1',
-                     'ImageVersion': '1.0',
-                     'Platform': 'p1',
-                     'Description': 'desc',
-                     'Size': '50',
-                     'Architecture': 'i386',
-                     'ImageOwnerAlias': 'system',
-                     'OSName': 'os1',
-                     'Visibility': 'public'},
-                    {'ImageId': 'i2',
-                     'Platform': 'p2',
-                     'ImageOwnerAlias': 'system'}
-                ]
-            }
-        },
-            {
-                'Images': {
-                    'Image': [
-                        {'ImageId': 'i3',
-                         'Platform': 'p3',
-                         'ImageOwnerAlias': 'system'}
+        get_response = [
+                       {
+                           "Images":{
+                               "Image":[
+                                   {
+                                        "Architecture":"arch",
+                                        "CreationTime":"time",
+                                        "Description":"desc",
+                                        "DiskDeviceMappings":{
+                                            "DiskDeviceMapping":[
+                                                {
+                                                    "Device":"/dev/xvda",
+                                                    "Size":"20",
+                                                    "SnapshotId":""
+                                                }
+                                            ]
+                                        },
+                                        "ImageId":"i1",
+                                        "ImageName":"name",
+                                        "ImageOwnerAlias":"owner",
+                                        "ImageVersion":"version",
+                                        "IsSubscribed":False,
+                                        "OSName":"os",
+                                        "ProductCode":"productcode",
+                                        "Size":20
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                           "Images":{
+                               "Image":[
+                                   {
+                                        "Architecture":"arch",
+                                        "CreationTime":"time",
+                                        "Description":"desc",
+                                        "DiskDeviceMappings":{
+                                            "DiskDeviceMapping":[
+                                                {
+                                                    "Device":"/dev/xvda",
+                                                    "Size":"20",
+                                                    "SnapshotId":""
+                                                }
+                                            ]
+                                        },
+                                        "ImageId":"i2",
+                                        "ImageName":"name",
+                                        "ImageOwnerAlias":"owner",
+                                        "ImageVersion":"version",
+                                        "IsSubscribed":False,
+                                        "OSName":"os",
+                                        "ProductCode":"productcode",
+                                        "Size":20
+                                    }
+                                ]
+                            }
+                        }
                     ]
-                }
-            }]
         expected_result = [
-            ecs.Image('i1', '1.0', 'p1', 'desc', 50, 'i386', 'system',
-                      'os1', 'public'),
-            ecs.Image(
-                'i2',
-                None,
-                'p2',
-                None,
-                None,
-                None,
-                'system',
-                None,
-                None),
-            ecs.Image('i3', None, 'p3', None, None, None, 'system', None, None)
+            ecs.Image('i1', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
+            ecs.Image('i2', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
         ]
-        self.conn.get({'Action': 'DescribeImages'},
-                      paginated=True).AndReturn(get_response)
+        self.conn.get({
+            'Action': 'DescribeImages',
+            'ImageId': 'i1,i2',
+            'ImageOwnerAlias': 'system',
+            'SnapshotId': 'snap'}, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.describe_images())
-        self.mox.VerifyAll()
-
-    def testWithParams(self):
-        get_response = [{
-            'Images': {
-                'Image': [
-                    {'ImageId': 'i1',
-                     'ImageVersion': '1.0',
-                     'Platform': 'p1',
-                     'Description': 'desc',
-                     'Size': '50',
-                     'Architecture': 'i386',
-                     'ImageOwnerAlias': 'system',
-                     'OSName': 'os1',
-                     'Visibility': 'public'},
-                    {'ImageId': 'i2',
-                     'Platform': 'p2',
-                     'ImageOwnerAlias': 'system'}
-                ]
-            }
-        },
-            {
-                'Images': {
-                    'Image': [
-                        {'ImageId': 'i3',
-                         'Platform': 'p3',
-                         'ImageOwnerAlias': 'other'}
-                    ]
-                }
-            }]
-        expected_result = [
-            ecs.Image('i1', '1.0', 'p1', 'desc', 50, 'i386', 'system',
-                      'os1', 'public'),
-            ecs.Image(
-                'i2',
-                None,
-                'p2',
-                None,
-                None,
-                None,
-                'system',
-                None,
-                None),
-            ecs.Image('i3', None, 'p3', None, None, None, 'other', None, None)
-        ]
-        self.conn.get({'Action': 'DescribeImages',
-                       'ImageId': 'i1,i2,i3',
-                       'ImageOwnerAlias': 'system,other'},
-                      paginated=True).AndReturn(get_response)
-
-        self.mox.ReplayAll()
-        self.assertEqual(
-            expected_result,
-            self.conn.describe_images(
-                image_ids=['i1', 'i2', 'i3'],
-                owner_alias=['system', 'other']))
+                         self.conn.describe_images(['i1', 'i2'], ['system'],'snap'))
         self.mox.VerifyAll()
 
 

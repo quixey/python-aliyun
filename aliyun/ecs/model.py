@@ -232,34 +232,31 @@ class Disk(object):
 
 class Image(object):
 
-    def __init__(self, image_id, image_version, platform, description,
-                 size, architecture, owner_alias, os_name, visibility):
+    def __init__(self, image_id, image_version, name, description, size,
+            architecture, owner_alias, os_name):
         """Constructor.
 
         Args:
             image_id (str): The id of the image.
             image_version (str): The version of the image.
-            platform (str): The platform.
+            name (str): Name of the image.
             description (str): The description.
             size (int): Its size in GB.
             architecture (str): The architecture - either i386 or x86_64.
             owner_alias (str): system, else or others.
             os_name (str): The os name.
-            visibility (str): Either public or private.
         """
         self.image_id = image_id
         self.image_version = image_version
-        self.platform = platform
         self.description = description
         self.size = size
         self.architecture = architecture
         self.owner_alias = owner_alias
         self.os_name = os_name
-        self.visibility = visibility
 
     def __repr__(self):
         return u'<Image %s(%s) for platform %s and arch %s at %s>' % (
-            self.image_id, self.description, self.platform, self.architecture,
+            self.image_id, self.description, self.os_name, self.architecture,
             id(self))
 
     def __eq__(self, other):

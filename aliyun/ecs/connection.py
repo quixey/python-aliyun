@@ -511,8 +511,21 @@ class EcsConnection(Connection):
                 Default: cloud.
             internet_charge_type (str): PayByBandwidth or PayByTraffic.
                 Default: PayByBandwidth.
-            data_disks (list): Two-tuples of (category, size or Snapshot ID).
-                E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
+            data_disks (list): List of dictionaries describing the blcok device
+                               mappings.
+                               E.g. [{
+                                       'category':'ephemeral',
+                                       'size': 200,
+                                       'name': 'mydiskname',
+                                       'description': 'my disk description',
+                                       'device': '/dev/xvdb'
+                                      },
+                                       'category':'ephemeral',
+                                       'snapshot_id': 'snap-1234',
+                                       'name': 'mydiskname',
+                                       'description': 'my disk description',
+                                       'device': '/dev/xvdb'
+                                    }]
             description (str): A long description of the instance.
             zone_id (str): An Availability Zone in the region to put the instance in.
                 E.g. 'cn-hangzhou-b'
@@ -542,11 +555,19 @@ class EcsConnection(Connection):
             params['InternetChargeType'] = internet_charge_type
         if data_disks != []:
             for i, disk in enumerate(data_disks):
-                params['DataDisk.%s.Category' % str(i+1)] = disk[0]
-                if isinstance(disk[1], int):
-                    params['DataDisk.%s.Size' % str(i+1)] = disk[1]
+                ddisk = 'DataDisk.%s.' % str(i+1)
+                params[ddisk + 'Category'] = disk.get('category', '')
+                if isinstance(disk.get('size', None), int):
+                    params[ddisk + 'Size'] = disk['size']
                 else:
-                    params['DataDisk.%s.SnapshotId' % str(i+1)] = disk[1]
+                    params[ddisk + 'SnapshotId'] = disk['snapshot_id']
+                if 'description' in disk:
+                    params[ddisk + 'Description'] = disk.get('description','')
+                if 'name' in disk:
+                    params[ddisk + 'DiskName'] = disk.get('name', '')
+                if 'device' in disk:
+                    params[ddisk + 'Device'] = disk.get('device', '')
+
         if description != None:
             params['Description'] = description
         if zone_id != None:
@@ -887,13 +908,14 @@ class EcsConnection(Connection):
 
         return snapshot_id
 
-    def describe_images(self, image_ids=[], owner_alias=[]):
+    def describe_images(self, image_ids=[], owner_alias=[], snapshot_id=None):
         """List images in the region matching params.
 
         Args:
             image_ids (list): List of image ids to filter on.
             owner_alias (list): List of owner alias to filter on. Can be
-                values: system, self or others.
+                values: system, self, others or marketplace.
+            snapshot_id (str): List images only based off of this snapshot.
 
         Returns:
             List of Image.
@@ -904,20 +926,21 @@ class EcsConnection(Connection):
         if image_ids:
             params['ImageId'] = ','.join(image_ids)
         if owner_alias:
-            params['ImageOwnerAlias'] = ','.join(owner_alias)
-
+            params['ImageOwnerAlias'] = '+'.join(owner_alias)
+        if snapshot_id:
+            params['SnapshotId'] = snapshot_id
+        
         for resp in self.get(params, paginated=True):
             for item in resp['Images']['Image']:
                 images.append(Image(
                     item['ImageId'],
                     item['ImageVersion'] if 'ImageVersion' in item else None,
-                    item['Platform'],
+                    item['ImageName'],
                     item['Description'] if 'Description' in item else None,
                     int(item['Size']) if 'Size' in item else None,
                     item['Architecture'] if 'Architecture' in item else None,
                     item['ImageOwnerAlias'],
-                    item['OSName'] if 'OSName' in item else None,
-                    item['Visibility'] if 'Visibility' in item else None))
+                    item['OSName'] if 'OSName' in item else None))
 
         return images
 

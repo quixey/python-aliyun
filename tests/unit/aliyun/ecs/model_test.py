@@ -178,24 +178,19 @@ class DiskTest(unittest.TestCase):
 class ImageTest(unittest.TestCase):
 
     def testEqual(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
-        i2 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
+        i2 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertEqual(i1, i2)
 
     def testNotEqual(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
-        i2 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 21,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
+        i2 = ecs.Image('i2', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertNotEqual(i1, i2)
 
     def testRepr(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertTrue(repr(i1).startswith(
-            u'<Image i1(standard image) for platform ubuntu12.04 and arch i3'))
+            u'<Image i1(desc) for platform os and arch arch'))
 
 
 class SecurityGroupInfoTest(unittest.TestCase):
