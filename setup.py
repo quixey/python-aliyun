@@ -14,6 +14,7 @@
 # the License.
 
 from setuptools import setup, find_packages
+from aliyun import __version__ as aliyun_version
 
 setup_requires = [
     'nose>=1.3.0',
@@ -27,7 +28,7 @@ tests_require = setup_requires + [
 ]
 
 setup(name='Aliyun',
-      version=0.6,
+      version=aliyun_version,
       description='Python client for Aliyun APIs.',
       author='Adam Gray, Akshay Dayal',
       author_email='adam@addumb.com, akshay@quixey.com',
