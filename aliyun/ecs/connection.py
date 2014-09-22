@@ -15,6 +15,9 @@
 
 from aliyun.connection import Connection
 from aliyun.ecs.model import (
+    AutoSnapshotPolicy,
+    AutoSnapshotExecutionStatus,
+    AutoSnapshotPolicyStatus,
     Disk,
     Image,
     Instance,
@@ -688,6 +691,66 @@ class EcsConnection(Connection):
 
         return instance_id
 
+    def describe_auto_snapshot_policy(self):
+        '''Describe the Auto-Snapshot policy for both data- and system-disks.
+
+        Returns:
+            AutoSnapshotPolicyResponse
+        '''
+
+        resp = self.get({'Action': 'DescribeAutoSnapshotPolicy'})
+        exc_status = resp['AutoSnapshotExcutionStatus']
+        sys_status = exc_status['SystemDiskExcutionStatus']
+        data_status = exc_status['DataDiskExcutionStatus']
+        status = AutoSnapshotExecutionStatus(sys_status, data_status)
+        p = resp['AutoSnapshotPolicy']
+        policy = AutoSnapshotPolicy(p['SystemDiskPolicyEnabled'] == 'true',
+                              int(p['SystemDiskPolicyTimePeriod']),
+                              int(p['SystemDiskPolicyRetentionDays']),
+                              p['SystemDiskPolicyRetentionLastWeek'] == 'true',
+                              p['DataDiskPolicyEnabled'] == 'true',
+                              int(p['DataDiskPolicyTimePeriod']),
+                              int(p['DataDiskPolicyRetentionDays']),
+                              p['DataDiskPolicyRetentionLastWeek'] == 'true')
+        return AutoSnapshotPolicyStatus(status, policy)
+
+    def modify_auto_snapshot_policy(self, system_disk_policy_enabled,
+                                    system_disk_policy_time_period,
+                                    system_disk_policy_retention_days,
+                                    system_disk_policy_retention_last_week,
+                                    data_disk_policy_enabled,
+                                    data_disk_policy_time_period,
+                                    data_disk_policy_retention_days,
+                                    data_disk_policy_retention_last_week):
+        '''Modify the account's auto-snapshot policy.
+
+        Args:
+            system_disk_policy_enabled (bool): Enable/Disable for system disks.
+            system_disk_policy_time_period (int): Time period for system disk
+                                                  auto snapshots.
+            system_disk_policy_retention_days (int): Number of days to retain.
+            system_disk_policy_retention_last_week (bool): Keep/Discard Sunday's
+                                                           auto-snapshot.
+            data_disk_policy_enabled (bool): Enable/Disable for data disks.
+            data_disk_policy_time_period (int): Time period for data disk auto
+                                                snapshots.
+            data_disk_policy_retention_days (int): Number of days to retain.
+            data_disk_policy_retention_last_week (bool): Keep/Discard Sunday's
+                                                           auto-snapshot.
+        '''
+
+        self.get({
+            'Action': 'ModifyAutoSnapshotPolicy',
+            'SystemDiskPolicyEnabled': str(system_disk_policy_enabled).lower(),
+            'SystemDiskPolicyTimePeriod': system_disk_policy_time_period,
+            'SystemDiskPolicyRetentionDays': system_disk_policy_retention_days,
+            'SystemDiskPolicyRetentionLastWeek': str(system_disk_policy_retention_last_week).lower(),
+            'DataDiskPolicyEnabled': str(data_disk_policy_enabled).lower(),
+            'DataDiskPolicyTimePeriod': data_disk_policy_time_period,
+            'DataDiskPolicyRetentionDays': data_disk_policy_retention_days,
+            'DataDiskPolicyRetentionLastWeek': str(data_disk_policy_retention_last_week).lower()
+            })
+
     def describe_disks(self, zone_id=None, disk_ids=None, instance_id=None,
             disk_type=None, category=None, status=None, snapshot_id=None,
             portable=None, delete_with_instance=None,
@@ -804,17 +867,15 @@ class EcsConnection(Connection):
         """
         self.get({'Action': 'ReInitDisk', 'DiskId': disk_id})
 
-    def delete_snapshot(self, instance_id, disk_id, snapshot_id):
+    def delete_snapshot(self, instance_id, snapshot_id):
         """Delete a snapshot.
 
         Args:
             instance_id (str): The id of the instance.
-            disk_id (str): The id of the disk.
             snapshot_id (str): The id of the snapshot.
         """
         self.get({'Action': 'DeleteSnapshot',
                   'InstanceId': instance_id,
-                  'DiskId': disk_id,
                   'SnapshotId': snapshot_id})
 
     def describe_snapshot(self, snapshot_id):
@@ -834,32 +895,44 @@ class EcsConnection(Connection):
             int(resp['Progress']),
             dateutil.parser.parse(resp['CreationTime']))
 
-    def describe_snapshots(self, instance_id, disk_id):
-        """Describe snapshots for a given disk.
+    def describe_snapshots(self, instance_id=None, disk_id=None,
+                           snapshot_ids=None):
+        '''Describe snapshots, filtering by ids or originating disk.
 
         Args:
-            instance_id (str): The id of the instance.
-            disk_id (str): The id of the disk.
+            instance_id (str): Instance ID.
+            disk_id (str): The originating disk ID to get snapshots for.
+            snapshot_ids (list): Filter to up to 10 specific snapshot IDs
 
         Returns:
             A list of Snapshot.
-        """
+        '''
+
         snapshots = []
-        resp = self.get({'Action': 'DescribeSnapshots',
-                         'InstanceId': instance_id,
-                         'DiskId': disk_id})
-        for snapshot in resp['Snapshots']['SnapshotResource']:
-            snapshots.append(Snapshot(
-                snapshot['SnapshotId'],
-                snapshot[
-                    'SnapshotName'] if 'SnapshotName' in snapshot else None,
-                int(snapshot['Progress']),
-                dateutil.parser.parse(snapshot['CreationTime'])))
+        params = {'Action': 'DescribeSnapshots'}
+        if instance_id:
+            params['InstanceId'] = instance_id
+        if disk_id:
+            params['DiskId'] = disk_id
+        if snapshot_ids:
+            params['SnapshotIds'] = ','.join(snapshot_ids)
+
+        for resp in self.get(params, paginated=True):
+            for snapshot in resp['Snapshots']['SnapshotResource']:
+                snapshots.append(Snapshot(
+                    snapshot['SnapshotId'],
+                    snapshot.get('SnapshotName', None),
+                    int(snapshot['Progress'][:-1]),
+                    dateutil.parser.parse(snapshot['CreationTime']),
+                    snapshot.get('Description', None),
+                    snapshot.get('SourceDiskId', None),
+                    snapshot.get('SourceDiskType', None),
+                    int(snapshot.get('SourceDiskSize', None))))
 
         return snapshots
 
     def create_snapshot(self, instance_id, disk_id, snapshot_name=None,
-                        timeout_secs=None):
+                        timeout_secs=None, description=None):
         """Create a snapshot of a disk.
 
         The instance has to be in the running or stopped state.
@@ -870,6 +943,7 @@ class EcsConnection(Connection):
             snapshot_name (str): The name to assign to the snapshot.
             timeout_secs (int): If you want to block till the snapshot
                 is ready you can specify how long to wait for.
+            description (str): A description of the snapshot.
 
         Returns:
             The snapshot id.
@@ -880,10 +954,13 @@ class EcsConnection(Connection):
         params = {
             'Action': 'CreateSnapshot',
             'InstanceId': instance_id,
-            'DiskId': disk_id
+            'DiskId': disk_id,
         }
         if snapshot_name:
             params['SnapshotName'] = snapshot_name
+
+        if description:
+            params['Description'] = description
 
         # Create the snapshot.
         snapshot_id = self.get(params)['SnapshotId']

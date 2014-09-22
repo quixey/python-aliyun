@@ -157,6 +157,64 @@ class SnapshotTest(unittest.TestCase):
         self.assertTrue(repr(s1).startswith(u'<Snapshot s1 is 100% ready at'))
 
 
+class AutoSnapshotPolicyTest(unittest.TestCase):
+
+    def testEqual(self):
+        asp1 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asp2 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.assertEqual(asp1, asp2)
+
+    def testNotEqual(self):
+        asp1 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asp2 = ecs.AutoSnapshotPolicy(True, 1, 1, False, False, 1, 1, False)
+        self.assertNotEqual(asp1, asp2)
+
+    def testRepr(self):
+        asp = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.assertTrue(repr(asp).startswith(u'<AutoSnapshotPolicy at'))
+
+
+class AutoSnapshotExecutionStatusTest(unittest.TestCase):
+
+    def testEqual(self):
+        ases1 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        ases2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        self.assertEqual(ases1, ases2)
+
+    def testNotEqual(self):
+        ases1 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        ases2 = ecs.AutoSnapshotExecutionStatus('not-equal', 'data-status')
+        self.assertNotEqual(ases1, ases2)
+
+    def testRepr(self):
+        ases = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        self.assertTrue(repr(ases).startswith('<AutoSnapshotExecutionStatus '))
+
+
+class AutoSnapshotPolicyStatusTest(unittest.TestCase):
+
+    def setUp(self):
+        self.policy = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.status = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+
+    def testEqual(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        status2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        policy2 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asps2 = ecs.AutoSnapshotPolicyStatus(status2, policy2)
+        self.assertEqual(asps1, asps2)
+
+    def testNotEqual(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        status2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        policy2 = ecs.AutoSnapshotPolicy(True, 1, 1, False, False, 1, 1, False)
+        asps2 = ecs.AutoSnapshotPolicyStatus(status2, policy2)
+        self.assertNotEqual(asps1, asps2)
+
+    def testRepr(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        self.assertTrue(repr(asps1).startswith('<AutoSnapshotPolicyStatus at'))
+
 class DiskTest(unittest.TestCase):
 
     def testEqual(self):

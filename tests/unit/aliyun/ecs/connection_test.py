@@ -19,6 +19,9 @@ import mox
 import time
 import unittest
 from aliyun.ecs.model import (
+    AutoSnapshotPolicy,
+    AutoSnapshotExecutionStatus,
+    AutoSnapshotPolicyStatus,
     Disk,
     Image,
     Instance,
@@ -499,6 +502,9 @@ class CreateInstanceTest(EcsConnectionTest):
                        'InternetChargeType': 'PayByBandwidth',
                        'DataDisk.1.Category': 'cloud',
                        'DataDisk.1.Size': 5,
+                       'DataDisk.1.Description': 'dd-1-desc',
+                       'DataDisk.1.DiskName': 'dd-1-name',
+                       'DataDisk.1.Device': '/dev/xvd-testing',
                        'DataDisk.2.Category': 'ephemeral',
                        'DataDisk.2.SnapshotId': 'snap',
                        'Description': 'desc',
@@ -506,7 +512,13 @@ class CreateInstanceTest(EcsConnectionTest):
             get_response)
 
         disks = [
-            {'category': 'cloud', 'size': 5},
+            {
+                'category': 'cloud',
+                'size': 5,
+                'description': 'dd-1-desc',
+                'name': 'dd-1-name',
+                'device': '/dev/xvd-testing'
+            },
             {'category': 'ephemeral', 'snapshot_id': 'snap'}
         ]
         self.mox.ReplayAll()
@@ -832,16 +844,62 @@ class DescribeDisksTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
 
+class AutoSnapshotPolicyTest(EcsConnectionTest):
+
+    def testDescribeAutoSnapshotPolicy(self):
+        response = {
+            "AutoSnapshotExcutionStatus": {
+                "DataDiskExcutionStatus": "Executed",
+                "SystemDiskExcutionStatus": "Executed"
+            },
+            "AutoSnapshotPolicy": {
+                "SystemDiskPolicyEnabled": "true",
+                "SystemDiskPolicyTimePeriod": "1",
+                "SystemDiskPolicyRetentionDays": "2",
+                "SystemDiskPolicyRetentionLastWeek": "true",
+                "DataDiskPolicyEnabled": "true",
+                "DataDiskPolicyTimePeriod": "3",
+                "DataDiskPolicyRetentionDays": "4",
+                "DataDiskPolicyRetentionLastWeek": "true"
+            },
+            "RequestId":""
+        }
+        policy = ecs.AutoSnapshotPolicy(True, 1, 2, True, True, 3, 4, True)
+        status = ecs.AutoSnapshotExecutionStatus('Executed', 'Executed')
+        policystatus = ecs.AutoSnapshotPolicyStatus(status, policy)
+        self.conn.get({'Action': 'DescribeAutoSnapshotPolicy'}).AndReturn(response)
+        self.mox.ReplayAll()
+
+        self.assertEqual(self.conn.describe_auto_snapshot_policy(), policystatus)
+
+        self.mox.VerifyAll()
+
+    def testModifyAutoSnapshotPolicy(self):
+        self.conn.get({
+            'Action': 'ModifyAutoSnapshotPolicy',
+            'SystemDiskPolicyEnabled': 'true',
+            'SystemDiskPolicyTimePeriod': 1,
+            'SystemDiskPolicyRetentionDays': 2,
+            'SystemDiskPolicyRetentionLastWeek': 'true',
+            'DataDiskPolicyEnabled': 'true',
+            'DataDiskPolicyTimePeriod': 3,
+            'DataDiskPolicyRetentionDays': 4,
+            'DataDiskPolicyRetentionLastWeek': 'true'
+            })
+        self.mox.ReplayAll()
+        self.conn.modify_auto_snapshot_policy(True, 1, 2, True, True, 3, 4, True)
+        self.mox.VerifyAll()
+
+
 class DeleteSnapshotTest(EcsConnectionTest):
 
     def testSuccess(self):
         self.conn.get({'Action': 'DeleteSnapshot',
                        'InstanceId': 'i1',
-                       'DiskId': 'd1',
                        'SnapshotId': 's1'})
 
         self.mox.ReplayAll()
-        self.conn.delete_snapshot('i1', 'd1', 's1')
+        self.conn.delete_snapshot('i1', 's1')
         self.mox.VerifyAll()
 
 
@@ -884,34 +942,67 @@ class DescribeSnapshotTest(EcsConnectionTest):
 class DescribeSnapshotsTest(EcsConnectionTest):
 
     def testSuccess(self):
-        get_response = {
-            'Snapshots': {
-                'SnapshotResource': [
-                    {'SnapshotId': 's1',
-                     'SnapshotName': 'n1',
-                     'Progress': '100',
-                     'CreationTime': '2014-02-05T00:52:32Z'},
-                    {'SnapshotId': 's2',
-                     'Progress': '100',
-                     'CreationTime': '2014-02-05T00:52:32Z'}
+        get_response = [
+            {"Snapshots": {
+                "SnapshotResource": [
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc1",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s1",
+                        "SnapshotName": "auto1",
+                        "SourceDiskId": "d1",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    },
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc2",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s2",
+                        "SnapshotName": "auto2",
+                        "SourceDiskId": "d2",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    }
                 ]
-            }
-        }
-        expected_result = [ecs.Snapshot(
-            's1', 'n1', 100, dateutil.parser.parse('2014-02-05T00:52:32Z')),
-            ecs.Snapshot(
-                's2', None, 100, dateutil.parser.parse(
-                    '2014-02-05T00:52:32Z'))]
-        self.conn.get({'Action': 'DescribeSnapshots',
-                       'InstanceId': 'i1',
-                       'DiskId': 'd1'}).AndReturn(get_response)
+            }},
+            {"Snapshots": {
+                "SnapshotResource": [
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc3",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s3",
+                        "SnapshotName": "auto3",
+                        "SourceDiskId": "d3",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    }
+                ]
+            }}
+        ]
+
+        now = dateutil.parser.parse('2014-09-22T20:21:41Z')
+        expected_result = [
+            ecs.Snapshot('s1', 'auto1', 100, now, 'desc1', 'd1', 'system', 20),
+            ecs.Snapshot('s2', 'auto2', 100, now, 'desc2', 'd2', 'system', 20),
+            ecs.Snapshot('s3', 'auto3', 100, now, 'desc3', 'd3', 'system', 20),
+            ]
+        params = {
+                'Action': 'DescribeSnapshots',
+                'InstanceId': 'iid',
+                'DiskId': 'did',
+                'SnapshotIds': 's1,s2,s3'
+                }
+        self.conn.get(params, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
-        self.assertEqual(
-            expected_result,
-            self.conn.describe_snapshots(
-                'i1',
-                'd1'))
+        results = self.conn.describe_snapshots('iid', 'did', ['s1','s2','s3'])
+        self.assertEqual(expected_result, results)
         self.mox.VerifyAll()
 
 
@@ -934,18 +1025,19 @@ class CreateSnapshotTest(EcsConnectionTest):
         self.assertEqual('s1', self.conn.create_snapshot('i1', 'd1'))
         self.mox.VerifyAll()
 
-    def testNoBlockingWithName(self):
+    def testNoBlockingWithParams(self):
         get_response = {
             'SnapshotId': 's1'
         }
         self.conn.get({'Action': 'CreateSnapshot',
                        'InstanceId': 'i1',
                        'DiskId': 'd1',
+                       'Description': 'desc',
                        'SnapshotName': 'n'}).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual('s1', self.conn.create_snapshot(
-            'i1', 'd1', snapshot_name='n'))
+            'i1', 'd1', snapshot_name='n', description='desc'))
         self.mox.VerifyAll()
 
     def testBlockingTimesOut(self):

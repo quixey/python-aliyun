@@ -67,5 +67,8 @@ class EcsReadOnlyTest(unittest.TestCase):
         group = self.c.get_security_group(gids.pop())
         self.assertTrue(group is not None)
 
+    def testAutoSnapshotPolicy(self):
+        print self.c.describe_auto_snapshot_policy()
+
 if __name__ == '__main__':
     unittests.main()

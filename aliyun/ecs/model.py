@@ -137,27 +137,138 @@ class InstanceType(object):
 
 class Snapshot(object):
 
-    def __init__(self, snapshot_id, snapshot_name, progress, creation_time):
-        """Constructor.
+    def __init__(self, snapshot_id, snapshot_name, progress, creation_time,
+                 description=None, source_disk_id=None, source_disk_type=None,
+                 source_disk_size=None):
+        """Snapshot for ECS Disk.
 
         snapshot_id (str): The id of the snapshot.
         snapshot_name (str): The name of the snapshot.
         progress (int): The progress ready percentage.
         creation_time (datetime): Its creation time.
+        source_disk_id (str): ID of the original disk.
+        source_disk_type (str): "data" or "system", for the original disk.
+        source_disk_size (int): size of the original disk in GB.
         """
         self.snapshot_id = snapshot_id
         self.snapshot_name = snapshot_name
         self.progress = progress
         self.creation_time = creation_time
+        self.source_disk_id = source_disk_id
+        self.source_disk_type = source_disk_type
+        self.source_disk_size = source_disk_size
 
     def __repr__(self):
         return u'<Snapshot %s is %s%% ready at %s>' % (
             self.snapshot_id, self.progress, id(self))
 
     def __eq__(self, other):
+        print self.__dict__
+        print other.__dict__
         return (self.__class__ == other.__class__ and
                 self.__dict__ == other.__dict__)
 
+
+class AutoSnapshotPolicy(object):
+
+    def __init__(self, system_disk_enabled, system_disk_time_period,
+                 system_disk_retention_days, system_disk_retention_last_week,
+                 data_disk_enabled, data_disk_time_period,
+                 data_disk_retention_days, data_disk_retention_last_week):
+        '''AutoSnapshotPolicy describing how to manage snapshot rotation.
+
+        The policy is composed of a system- and data-disk policy, but the API
+        does not handle them independently, so this object combines them too.
+
+        Arguments:
+            system_disk_enabled (bool): wether the policy is on for SystemDisk
+            system_disk_time_period (int): the time period during which to
+                                           auto-snapshot. There are 4 choices:
+                                           1, 2, 3 or 4. These correspond to
+                                           these time periods:
+                                           1: 1:00 - 7:00
+                                           2: 7:00 - 13:00
+                                           3: 13:00 - 19:00
+                                           4: 19:00 - 1:00
+                                           All times Beijing Time.
+            system_disk_retention_days (int): number of days to retain.
+                                              must be between 1 and 3, inclusive
+            system_disk_retention_last_week (bool): wether to retain a weekly
+                                                    snapshot from Sundays.
+            data_disk_enabled (bool): wether the policy is on for DataDisk
+            data_disk_time_period (int): the time period during which to
+                                         auto-snapshot. There are 4 choices: 1,
+                                         2, 3 or 4. These correspond to these
+                                         time periods:
+                                         1: 1:00 - 7:00
+                                         2: 7:00 - 13:00
+                                         3: 13:00 - 19:00
+                                         4: 19:00 - 1:00
+                                         All times Beijing Time.
+            data_disk_retention_days (int): number of days to retain.
+                                              must be between 1 and 3, inclusive
+            data_disk_retention_last_week (bool): wether to retain a weekly
+                                                    snapshot from Sundays.
+        '''
+        self.system_disk_enabled = system_disk_enabled
+        self.system_disk_time_period = system_disk_time_period
+        self.system_disk_retention_days = system_disk_retention_days
+        self.system_disk_retention_last_week = system_disk_retention_last_week
+        self.data_disk_enabled = data_disk_enabled
+        self.data_disk_time_period = data_disk_time_period
+        self.data_disk_retention_days = data_disk_retention_days
+        self.data_disk_retention_last_week = data_disk_retention_last_week
+
+    def __repr__(self):
+        return u'<AutoSnapshotPolicy at %s>' % id(self)
+
+    def __eq__(self, other):
+        print self.__dict__
+        print other.__dict__
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)
+
+
+class AutoSnapshotExecutionStatus(object):
+
+    def __init__(self, system_disk_execution_status, data_disk_execution_status):
+        '''Description of the status of the auto-snapshot policy's executions.
+
+        The arguments are either 'Standby', 'Executed', or 'Failed'.
+            Standby: The policy is created, but disabled.
+            Executed: The latest auto-snapshot was successful.
+            Failed: The latest auto-snapshot was unsuccessful.
+        These are separated by system- or data-disk types since they can work
+        independently.
+
+        Args:
+            system_disk_execution_status (str): Standby|Executed|Failed
+            data_disk_execution_status (str): Standby|Executed|Failed
+        '''
+
+        self.system_disk_execution_status = system_disk_execution_status
+        self.data_disk_execution_status = data_disk_execution_status
+
+    def __repr__(self):
+        return u'<AutoSnapshotExecutionStatus at %s>' % id(self)
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)
+
+
+class AutoSnapshotPolicyStatus(object):
+
+    def __init__(self, status, policy):
+        self.status = status
+        self.policy = policy
+
+    def __repr__(self):
+        return u'<AutoSnapshotPolicyStatus at %s>' % id(self)
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)
 
 class Disk(object):
 
