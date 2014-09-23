@@ -536,6 +536,15 @@ class EcsConnection(Connection):
                'device': '/dev/xvdb'
             }]
 
+        The API supports up to 4 additional disks, each up to 1TB, so to get the
+        maximum disk space at instance creation, this should do the trick::
+
+            [
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024}
+            ]
         """
         params = {
             'Action': 'CreateInstance',
@@ -607,8 +616,7 @@ class EcsConnection(Connection):
         starts the instance. It can optionally block for the instance to be
         running - by default it does block.
 
-        Currently specifying additional data disks is not supported.
-        Future updates will add this feature.
+        Specifying additional data disks is covered in :func:`create_instance`.
 
         Args:
             image_id (str): Which image id to use.
@@ -630,8 +638,9 @@ class EcsConnection(Connection):
                 a public ip address. Default: True.
             block_till_ready (bool): Whether to block till the instance is
                 running. Default: True.
-            data_disks (list): Two-tuples of (category, size or Snapshot ID).
-                E.g. [('ephemeral', 200), ('cloud', 'snap-14i1oh')]
+            data_disks (list): List of dictionaries defining additional data
+                disk device mappings.
+                Minimum example: [{'category': 'cloud', 'size': 1024}]
             description (str): A long description of the instance.
             zone_id (str): An Availability Zone in the region to put the instance in.
                 E.g. 'cn-hangzhou-b'
@@ -642,6 +651,34 @@ class EcsConnection(Connection):
         Raises:
             Error: if more then 4 additional security group ids specified.
             Error: if timeout while waiting for instance to be running.
+
+        The data_disks device mapping dictionary describes the same Disk
+        attributes as :func:`create_disk`::
+
+            [{
+               'category': 'ephemeral',
+               'size': 200,
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            },
+            {
+               'category': 'ephemeral',
+               'snapshot_id': 'snap-1234',
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            }]
+
+        The API supports up to 4 additional disks, each up to 1TB, so to get the
+        maximum disk space at instance creation, this should do the trick::
+
+            [
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024},
+                {'category': 'cloud', 'size': 1024}
+            ]
         """
         # Cannot have more then 5 security groups total.
         if len(additional_security_group_ids) > 4:
