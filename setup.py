@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 setup_requires = [
     'nose>=1.3.0',
     'sphinx',
-    'sphinxcontrib-programoutput'
+    'sphinxcontrib-programoutput',
 ]
 
 tests_require = setup_requires + [
@@ -29,7 +29,7 @@ tests_require = setup_requires + [
 setup(name='Aliyun',
       version=0.6,
       description='Python client for Aliyun APIs.',
-      author='Adam Gray, Akshay Dayal, North Bits',
+      author='Adam Gray, Akshay Dayal',
       author_email='adam@addumb.com, akshay@quixey.com',
       packages=find_packages(exclude=["tests*"]),
       setup_requires = setup_requires,

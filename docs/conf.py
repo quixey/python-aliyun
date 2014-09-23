@@ -31,6 +31,7 @@ import os
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
     'sphinxcontrib.napoleon',
     'sphinxcontrib.programoutput'
 ]
@@ -331,3 +332,6 @@ epub_exclude_files = ['search.html']
 
 # If false, no index is generated.
 #epub_use_index = True
+
+# Intersphinx for python core docs
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}

@@ -45,16 +45,15 @@ class Error(Exception):
 
 class EcsConnection(Connection):
 
-    """A connection to Aliyun ECS service."""
+    """A connection to Aliyun ECS service.
+
+    Args:
+        region_id (str): The id of the region to connect to.
+        access_key_id (str): The access key id.
+        secret_access_key (str): The secret access key.
+    """
 
     def __init__(self, region_id, access_key_id=None, secret_access_key=None):
-        """Construct a connection to the ECS service.
-
-        Args:
-            region_id (str): The id of the region to connect to.
-            access_key_id (str): The access key id.
-            secret_access_key (str): The secret access key.
-        """
         super(EcsConnection, self).__init__(
             region_id, 'ecs', access_key_id=access_key_id,
             secret_access_key=secret_access_key)
@@ -63,7 +62,7 @@ class EcsConnection(Connection):
         """Get all regions.
 
         Returns:
-            List of Region.
+            list: A list of :class:`aliyun.ecs.model.Region`
         """
         resp = self.get({'Action': 'DescribeRegions'})
         regions = []
@@ -83,7 +82,7 @@ class EcsConnection(Connection):
         """Get all availability zones in the region.
 
         Returns:
-            List of Zone
+            List of :class:`.model.Zone`.
         """
         resp = self.get({'Action': 'DescribeZones'})
         zones = []
@@ -117,12 +116,12 @@ class EcsConnection(Connection):
 
     def get_all_instance_status(self, zone_id=None):
         """Get the instance statuses.
-        
+
         Args:
             zone_id (str, optional): A specific zone id to get instances from.
 
         Returns:
-            The list of InstanceStatus.
+            The list of :class:`.model.InstanceStatus`.
         """
         instance_status = []
         params = {
@@ -131,7 +130,7 @@ class EcsConnection(Connection):
 
         if zone_id != None:
             params.update({'ZoneId': zone_id})
-    
+
         for resp in self.get(params, paginated=True):
             for item in resp['InstanceStatuses']['InstanceStatus']:
                 instance_status.append(
@@ -156,10 +155,10 @@ class EcsConnection(Connection):
             instance_id (str): The id of the instance.
 
         Returns:
-            The Instance if found.
+            :class:`.model.Instance` if found.
 
         Raises:
-            Error if not found.
+            Error: if not found.
         """
         resp = self.get({
             'Action': 'DescribeInstanceAttribute',
@@ -258,7 +257,8 @@ class EcsConnection(Connection):
         self.get(params)
 
     def modify_instance_spec(self, instance_id, instance_type=None,
-            internet_max_bandwidth_out=None, internet_max_bandwidth_in=None):
+                             internet_max_bandwidth_out=None,
+                             internet_max_bandwidth_in=None):
         """NOT PUBLICLY AVAILABLE: Modify instance specification
 
         Modify an existing instance's instance type or in/out bandwidth limits.
@@ -324,11 +324,11 @@ class EcsConnection(Connection):
                   'SecurityGroupId': security_group_id})
 
     def create_disk(self, zone_id, name=None, description=None, size=None,
-            snapshot_id=None):
+                    snapshot_id=None):
         """Create a non-durable disk.
         A new disk will be created and can be managed independently of instance.
-        
-        Either size or snapshot_id must be specified, but not both. If 
+
+        Either size or snapshot_id must be specified, but not both. If
         snapshot_id is specified, the size will be taken from the snapshot.
 
         If the snapshot referenced was created before 15 July, 2013, the API
@@ -340,20 +340,20 @@ class EcsConnection(Connection):
             name (str): A short name for the disk.
             description (str): A longer description of the disk.
             size (int): Size of the disk in GB. Must be in the range [5-2048].
-            snapshot_id (str): The snapshot ID to create a disk from. 
+            snapshot_id (str): The snapshot ID to create a disk from.
                                If used, the size will be taken from the snapshot
                                and the given size will be disregarded.
 
         Returns:
-            disk_id (str): The ID to reference the created disk.
+            (str): The ID to reference the created disk.
         """
         if size is not None and snapshot_id is not None:
             raise Error("Use size or snapshot_id. Not both.")
 
         params = {
-                'Action': 'CreateDisk',
-                'ZoneId': zone_id
-            }
+            'Action': 'CreateDisk',
+            'ZoneId': zone_id
+        }
 
         if size is not None:
             params['Size'] = size
@@ -370,12 +370,12 @@ class EcsConnection(Connection):
         return self.get(params)['DiskId']
 
     def attach_disk(self, instance_id, disk_id, device=None,
-            delete_with_instance=None):
+                    delete_with_instance=None):
         """Attach an existing disk to an existing instance.
         The disk and instance must already exist. The instance must be in the
         Stopped state, or the disk will be attached at next reboot.
 
-        The disk will be attached at the next available drive letter (e.g. 
+        The disk will be attached at the next available drive letter (e.g.
         in linux, /dev/xvdb if only /dev/xvda exists). It will be a raw and
         un-formatted block device.
 
@@ -389,10 +389,10 @@ class EcsConnection(Connection):
         """
 
         params = {
-                'Action': 'AttachDisk',
-                'InstanceId': instance_id,
-                'DiskId': disk_id
-                }
+            'Action': 'AttachDisk',
+            'InstanceId': instance_id,
+            'DiskId': disk_id
+        }
         if device is not None:
             params['Device'] = device
         if delete_with_instance is not None:
@@ -409,13 +409,13 @@ class EcsConnection(Connection):
         """
 
         self.get({
-                'Action': 'DetachDisk',
-                'InstanceId': instance_id,
-                'DiskId': disk_id
-                })
+            'Action': 'DetachDisk',
+            'InstanceId': instance_id,
+            'DiskId': disk_id
+            })
 
     def add_disk(self, instance_id, size=None, snapshot_id=None, name=None,
-            description=None, device=None, delete_with_instance=None):
+                 description=None, device=None, delete_with_instance=None):
         """Create and attach a non-durable disk to an instance.
 
         This is convenience method, combining create_disk and attach_disk.
@@ -424,7 +424,7 @@ class EcsConnection(Connection):
         available disk letter to the OS. The disk is a plain block device with
         no partitions nor filesystems.
 
-        Either size or snapshot_id must be specified, but not both. If 
+        Either size or snapshot_id must be specified, but not both. If
         snapshot_id is specified, the size will be taken from the snapshot.
 
         If the snapshot referenced was created before 15 July, 2013, the API
@@ -433,7 +433,7 @@ class EcsConnection(Connection):
         Args:
             instance_id (str): ID of the instance to add the disk to.
             size (int): Size of the disk in GB. Must be in the range [5-2048].
-            snapshot_id (str): The snapshot ID to create a disk from. 
+            snapshot_id (str): The snapshot ID to create a disk from.
                                If used, the size will be taken from the snapshot
                                and the given size will be disregarded.
             name (str): A short name for the disk.
@@ -446,8 +446,8 @@ class EcsConnection(Connection):
             disk_id (str): the ID to reference the created disk.
 
         Raises:
-            Error if size and snapshot_id are used.
-            Error InvalidSnapshot.TooOld if referenced snapshot is too old.
+            Error: if size and snapshot_id are used.
+            Error: InvalidSnapshot.TooOld if referenced snapshot is too old.
 
         """
 
@@ -468,7 +468,7 @@ class EcsConnection(Connection):
             'Action': 'ResetDisk',
             'DiskId': disk_id,
             'SnapshotId': snapshot_id
-            }) 
+            })
 
     def delete_disk(self, disk_id):
         """Delete a disk from an instance.
@@ -483,9 +483,9 @@ class EcsConnection(Connection):
         """
 
         self.get({
-                'Action': 'DeleteDisk',
-                'DiskId': disk_id
-                })
+            'Action': 'DeleteDisk',
+            'DiskId': disk_id
+            })
 
     def create_instance(
             self, image_id, instance_type,
@@ -496,9 +496,6 @@ class EcsConnection(Connection):
             internet_charge_type=None,
             data_disks=[], description=None, zone_id=None):
         """Create an instance.
-
-        Currently specifying additional data disks is not supported.
-        Future updates will add this feature.
 
         Args:
             image_id (str): Which image id to use.
@@ -514,27 +511,32 @@ class EcsConnection(Connection):
                 Default: cloud.
             internet_charge_type (str): PayByBandwidth or PayByTraffic.
                 Default: PayByBandwidth.
-            data_disks (list): List of dictionaries describing the blcok device
-                               mappings.
-                               E.g. [{
-                                       'category':'ephemeral',
-                                       'size': 200,
-                                       'name': 'mydiskname',
-                                       'description': 'my disk description',
-                                       'device': '/dev/xvdb'
-                                      },
-                                       'category':'ephemeral',
-                                       'snapshot_id': 'snap-1234',
-                                       'name': 'mydiskname',
-                                       'description': 'my disk description',
-                                       'device': '/dev/xvdb'
-                                    }]
+            data_disks (list): List of dictionaries describing the block devices.
             description (str): A long description of the instance.
             zone_id (str): An Availability Zone in the region to put the instance in.
                 E.g. 'cn-hangzhou-b'
 
         Returns:
             The id of the instance created.
+
+        The data_disks device mapping dictionary describes the same Disk
+        attributes as :func:`create_disk`::
+
+            [{
+               'category': 'ephemeral',
+               'size': 200,
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            },
+            {
+               'category': 'ephemeral',
+               'snapshot_id': 'snap-1234',
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            }]
+
         """
         params = {
             'Action': 'CreateInstance',
@@ -571,9 +573,9 @@ class EcsConnection(Connection):
                 if 'device' in disk:
                     params[ddisk + 'Device'] = disk.get('device', '')
 
-        if description != None:
+        if description:
             params['Description'] = description
-        if zone_id != None:
+        if zone_id:
             params['ZoneId'] = zone_id
 
         return self.get(params)['InstanceId']
@@ -585,7 +587,7 @@ class EcsConnection(Connection):
             instance_id (str): instance ID to add a public IP to.
 
         Returns:
-            IpAddress: the public IP allocated to the instance.
+            the public IP allocated to the instance.
         """
         return self.get({'Action': 'AllocatePublicIpAddress',
                          'InstanceId': instance_id})
@@ -639,8 +641,8 @@ class EcsConnection(Connection):
             The id of the instance created.
 
         Raises:
-            Error if more then 4 additional security group ids specified.
-            Error if timeout while waiting for instance to be running.
+            Error: if more then 4 additional security group ids specified.
+            Error: if timeout while waiting for instance to be running.
         """
         # Cannot have more then 5 security groups total.
         if len(additional_security_group_ids) > 4:
@@ -695,7 +697,7 @@ class EcsConnection(Connection):
         '''Describe the Auto-Snapshot policy for both data- and system-disks.
 
         Returns:
-            AutoSnapshotPolicyResponse
+            :class:`.model.AutoSnapshotPolicyResponse`.
         '''
 
         resp = self.get({'Action': 'DescribeAutoSnapshotPolicy'})
@@ -705,13 +707,13 @@ class EcsConnection(Connection):
         status = AutoSnapshotExecutionStatus(sys_status, data_status)
         p = resp['AutoSnapshotPolicy']
         policy = AutoSnapshotPolicy(p['SystemDiskPolicyEnabled'] == 'true',
-                              int(p['SystemDiskPolicyTimePeriod']),
-                              int(p['SystemDiskPolicyRetentionDays']),
-                              p['SystemDiskPolicyRetentionLastWeek'] == 'true',
-                              p['DataDiskPolicyEnabled'] == 'true',
-                              int(p['DataDiskPolicyTimePeriod']),
-                              int(p['DataDiskPolicyRetentionDays']),
-                              p['DataDiskPolicyRetentionLastWeek'] == 'true')
+                                    int(p['SystemDiskPolicyTimePeriod']),
+                                    int(p['SystemDiskPolicyRetentionDays']),
+                                    p['SystemDiskPolicyRetentionLastWeek'] == 'true',
+                                    p['DataDiskPolicyEnabled'] == 'true',
+                                    int(p['DataDiskPolicyTimePeriod']),
+                                    int(p['DataDiskPolicyRetentionDays']),
+                                    p['DataDiskPolicyRetentionLastWeek'] == 'true')
         return AutoSnapshotPolicyStatus(status, policy)
 
     def modify_auto_snapshot_policy(self, system_disk_policy_enabled,
@@ -752,9 +754,9 @@ class EcsConnection(Connection):
             })
 
     def describe_disks(self, zone_id=None, disk_ids=None, instance_id=None,
-            disk_type=None, category=None, status=None, snapshot_id=None,
-            portable=None, delete_with_instance=None,
-            delete_auto_snapshot=None):
+                       disk_type=None, category=None, status=None,
+                       snapshot_id=None,portable=None,
+                       delete_with_instance=None, delete_auto_snapshot=None):
         """List the disks in the region. All arguments are optional to allow
         restricting the disks retrieved.
 
@@ -776,43 +778,45 @@ class EcsConnection(Connection):
                                          deleted with the Disk.
 
         Returns:
-            List of Disk objects.
+            List of :class:`.model.Disk` objects.
         """
         disks = []
         params = {'Action': 'DescribeDisks'}
-        if zone_id != None: params['ZoneId'] = zone_id
-        if disk_ids != None: params['DiskIds'] = disk_ids
-        if instance_id != None: params['InstanceId'] = instance_id
-
+        if zone_id:
+            params['ZoneId'] = zone_id
+        if disk_ids:
+            params['DiskIds'] = disk_ids
+        if instance_id:
+            params['InstanceId'] = instance_id
 
         for resp in self.get(params, paginated=True):
             for disk in resp['Disks']['Disk']:
                 disks.append(Disk(disk['DiskId'],
-                      disk['Type'],
-                      disk['Category'],
-                      disk['Size'],
-                      dateutil.parser.parse(disk['AttachedTime']) if disk['AttachedTime'] != '' else None,
-                      dateutil.parser.parse(disk['CreationTime']) if disk['CreationTime'] != '' else None,
-                      disk['DeleteAutoSnapshot'] == 'true' if disk['DeleteAutoSnapshot'] != '' else None,
-                      disk['DeleteWithInstance'] == 'true' if disk['DeleteWithInstance'] != '' else None,
-                      disk['Description'] if disk['Description'] != '' else None,
-                      dateutil.parser.parse(disk['DetachedTime']) if disk['DetachedTime'] != '' else None,
-                      disk['Device'] if disk['Device'] != '' else None,
-                      disk['ImageId'] if disk['ImageId'] != '' else None,
-                      disk['InstanceId'] if disk['InstanceId'] != '' else None,
-                      disk['OperationLocks']['OperationLock'],
-                      disk['Portable'] == 'true' if disk['Portable'] != '' else None,
-                      disk['ProductCode'] if disk['ProductCode'] != '' else None,
-                      disk['SourceSnapshotId'] if disk['SourceSnapshotId'] != '' else None,
-                      disk['Status'] if disk['Status'] != '' else None,
-                      disk['ZoneId'] if disk['ZoneId'] != '' else None))
+                                  disk['Type'],
+                                  disk['Category'],
+                                  disk['Size'],
+                                  dateutil.parser.parse(disk['AttachedTime']) if disk['AttachedTime'] != '' else None,
+                                  dateutil.parser.parse(disk['CreationTime']) if disk['CreationTime'] != '' else None,
+                                  disk['DeleteAutoSnapshot'] == 'true' if disk['DeleteAutoSnapshot'] != '' else None,
+                                  disk['DeleteWithInstance'] == 'true' if disk['DeleteWithInstance'] != '' else None,
+                                  disk['Description'] if disk['Description'] != '' else None,
+                                  dateutil.parser.parse(disk['DetachedTime']) if disk['DetachedTime'] != '' else None,
+                                  disk['Device'] if disk['Device'] != '' else None,
+                                  disk['ImageId'] if disk['ImageId'] != '' else None,
+                                  disk['InstanceId'] if disk['InstanceId'] != '' else None,
+                                  disk['OperationLocks']['OperationLock'],
+                                  disk['Portable'] == 'true' if disk['Portable'] != '' else None,
+                                  disk['ProductCode'] if disk['ProductCode'] != '' else None,
+                                  disk['SourceSnapshotId'] if disk['SourceSnapshotId'] != '' else None,
+                                  disk['Status'] if disk['Status'] != '' else None,
+                                  disk['ZoneId'] if disk['ZoneId'] != '' else None))
         return disks
 
     def describe_instance_types(self):
         """List the instance types available.
 
         Returns:
-            List of InstanceType.
+            List of :class:`.model.InstanceType`.
         """
         instance_types = []
         resp = self.get({'Action': 'DescribeInstanceTypes'})
@@ -832,12 +836,12 @@ class EcsConnection(Connection):
             instance_id (str): The id of the instance.
 
         Returns:
-            List of Disk.
+            List of :class:`.model.Disk`.
         """
         return self.describe_disks(instance_id=instance_id)
 
     def modify_disk(self, disk_id, name=None, description=None,
-            delete_with_instance=None):
+                    delete_with_instance=None):
         """Modify information about a disk.
 
         Args:
@@ -885,7 +889,7 @@ class EcsConnection(Connection):
             snapshot_id (str): The id of the snapshot.
 
         Returns:
-            A Snapshot.
+            :class:`.model.Snapshot`.
         """
         resp = self.get({'Action': 'DescribeSnapshotAttribute',
                          'SnapshotId': snapshot_id})
@@ -905,7 +909,7 @@ class EcsConnection(Connection):
             snapshot_ids (list): Filter to up to 10 specific snapshot IDs
 
         Returns:
-            A list of Snapshot.
+            A list of :class:`.model.Snapshot`.
         '''
 
         snapshots = []
@@ -949,7 +953,7 @@ class EcsConnection(Connection):
             The snapshot id.
 
         Raises:
-            Error if a timeout is given and the snapshot is not ready by then.
+            Error: if a timeout is given and the snapshot is not ready by then.
         """
         params = {
             'Action': 'CreateSnapshot',
@@ -995,7 +999,7 @@ class EcsConnection(Connection):
             snapshot_id (str): List images only based off of this snapshot.
 
         Returns:
-            List of Image.
+            List of :class`.model.Image` objects.
         """
         images = []
 
@@ -1006,7 +1010,7 @@ class EcsConnection(Connection):
             params['ImageOwnerAlias'] = '+'.join(owner_alias)
         if snapshot_id:
             params['SnapshotId'] = snapshot_id
-        
+
         for resp in self.get(params, paginated=True):
             for item in resp['Images']['Image']:
                 images.append(Image(
@@ -1076,7 +1080,7 @@ class EcsConnection(Connection):
             The (snapshot id, image id) pair.
 
         Raises:
-            Error if the system disk cannot be found or if the snapshot
+            Error: if the system disk cannot be found or if the snapshot
                 creation process times out.
         """
         # Get the system disk id.
@@ -1106,7 +1110,7 @@ class EcsConnection(Connection):
         """List all the security groups in the region.
 
         Returns:
-            List of SecurityGroupInfo.
+            List of :class:`.model.SecurityGroupInfo`.
         """
         infos = []
         for resp in self.get({'Action': 'DescribeSecurityGroups'},
@@ -1145,7 +1149,7 @@ class EcsConnection(Connection):
             security_group_id (str): The id of the security group.
 
         Returns:
-            The SecurityGroup.
+            The :class:`.model.SecurityGroup` object.
         """
         outside_resp = self.get({'Action': 'DescribeSecurityGroupAttribute',
                                  'SecurityGroupId': security_group_id,
