@@ -835,12 +835,14 @@ class DescribeDisksTest(EcsConnectionTest):
                 'In_use', 'zid')
         d3 = ecs.Disk('d3', 'system', 'cloud', 20)
         self.conn.get({'Action': 'DescribeDisks',
-                       'InstanceId': 'i-id'}, paginated=True).AndReturn(get_response)
+                       'InstanceId': 'i-id',
+                       'DiskIds': 'd,d',
+                       'ZoneId': 'z'}, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(
             [d1, d2, d3],
-            self.conn.describe_disks(instance_id='i-id'))
+            self.conn.describe_disks(instance_id='i-id', zone_id='z', disk_ids=['d','d']))
         self.mox.VerifyAll()
 
 

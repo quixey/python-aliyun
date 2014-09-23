@@ -31,7 +31,6 @@ from aliyun.ecs.model import (
     Zone
 )
 import dateutil.parser
-import logging
 import time
 
 
@@ -762,7 +761,7 @@ class EcsConnection(Connection):
 
         Args:
             zone_id (str): Availability Zone of the disks.
-            disk_ids (list of str): List of disk ids to retrieve.
+            disk_ids (list): List of disk ids to retrieve.
             instance_id (str): ID of instance retrieved disks are attached to.
             disk_type (str): "system", "data", or "all" (default).
             category (str): "cloud", "ephemeral", or "all" (default).
@@ -785,7 +784,7 @@ class EcsConnection(Connection):
         if zone_id:
             params['ZoneId'] = zone_id
         if disk_ids:
-            params['DiskIds'] = disk_ids
+            params['DiskIds'] = ','.join(disk_ids)
         if instance_id:
             params['InstanceId'] = instance_id
 
