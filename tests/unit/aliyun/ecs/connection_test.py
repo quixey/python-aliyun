@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -30,22 +30,25 @@ from aliyun.ecs.model import (
     SecurityGroup,
     SecurityGroupInfo,
     SecurityGroupPermission,
-    Snapshot
+    Snapshot,
+    Zone
 )
 
 from aliyun.ecs import connection as ecs
+
 
 class MockEcsInstance(object):
     def __init__(self, instance_id, zone_id):
         self.instance_id = instance_id
         self.zone_id = zone_id
 
+
 class EcsConnectionTest(unittest.TestCase):
 
     def setUp(self):
         self.mox = mox.Mox()
-        self.conn = ecs.EcsConnection(
-                region_id='r', access_key_id='a', secret_access_key='s')
+        self.conn = ecs.EcsConnection(region_id='r', access_key_id='a',
+                                      secret_access_key='s')
         self.mox.StubOutWithMock(self.conn, 'get')
 
     def tearDown(self):
@@ -86,23 +89,24 @@ class GetAllRegionsTest(EcsConnectionTest):
         self.assertEqual(expected_result, self.conn.get_all_region_ids())
         self.mox.VerifyAll()
 
+
 class GetAllZonesTest(EcsConnectionTest):
 
     def testSuccess(self):
         get_response = {
             'Zones': {
                 'Zone': [
-                    {'ZoneId': 'z1', 'LocalName': 'l1', 
+                    {'ZoneId': 'z1', 'LocalName': 'l1',
                         'AvailableResourceCreation': {
-                            'ResourceTypes': [ 'Disk', 'Instance']
+                            'ResourceTypes': ['Disk', 'Instance']
                         },
                         'AvailableDiskCategories': {
                             'DiskCategories': ['cloud', 'ephemeral']
                         }
                     },
-                    {'ZoneId': 'z2', 'LocalName': 'l2', 
+                    {'ZoneId': 'z2', 'LocalName': 'l2',
                         'AvailableResourceCreation': {
-                            'ResourceTypes': [ 'Instance']
+                            'ResourceTypes': ['Instance']
                         },
                         'AvailableDiskCategories': {
                             'DiskCategories': []
@@ -110,8 +114,8 @@ class GetAllZonesTest(EcsConnectionTest):
                     }]
                 }
             }
-        z1 = ecs.Zone('z1', 'l1', ['Disk', 'Instance'], ['cloud', 'ephemeral'])
-        z2 = ecs.Zone('z2', 'l2', ['Instance'])
+        z1 = Zone('z1', 'l1', ['Disk', 'Instance'], ['cloud', 'ephemeral'])
+        z2 = Zone('z2', 'l2', ['Instance'])
         self.conn.get({'Action': 'DescribeZones'}).AndReturn(get_response)
         self.mox.ReplayAll()
 
@@ -120,8 +124,8 @@ class GetAllZonesTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testZoneIds(self):
-        z1 = ecs.Zone('z1', 'l1')
-        z2 = ecs.Zone('z2', 'l2')
+        z1 = Zone('z1', 'l1')
+        z2 = Zone('z2', 'l2')
         self.mox.StubOutWithMock(self.conn, 'get_all_zones')
         self.conn.get_all_zones().AndReturn([z1, z2])
         self.mox.ReplayAll()
@@ -129,6 +133,7 @@ class GetAllZonesTest(EcsConnectionTest):
         self.assertEqual(['z1', 'z2'], self.conn.get_all_zone_ids())
 
         self.mox.VerifyAll()
+
 
 class GetAllClustersTest(EcsConnectionTest):
     def testGetAllClusters(self):
@@ -140,6 +145,7 @@ class GetAllClustersTest(EcsConnectionTest):
         self.mox.ReplayAll()
         self.assertEqual(['c1', 'c2'], self.conn.get_all_clusters())
         self.mox.VerifyAll()
+
 
 class GetAllInstanceStatusTest(EcsConnectionTest):
 
@@ -159,9 +165,9 @@ class GetAllInstanceStatusTest(EcsConnectionTest):
                     ]
                 }
             }]
-        expected_result = [ecs.InstanceStatus('i1', 'running'),
-                           ecs.InstanceStatus('i2', 'stopped'),
-                           ecs.InstanceStatus('i3', 'running')]
+        expected_result = [InstanceStatus('i1', 'running'),
+                           InstanceStatus('i2', 'stopped'),
+                           InstanceStatus('i3', 'running')]
         self.conn.get({'Action': 'DescribeInstanceStatus', 'ZoneId': 'z'},
                       paginated=True).AndReturn(get_response)
 
@@ -169,7 +175,6 @@ class GetAllInstanceStatusTest(EcsConnectionTest):
         self.assertEqual(expected_result,
                          self.conn.get_all_instance_status(zone_id='z'))
         self.mox.VerifyAll()
-
 
     def testGetIds(self):
         get_response = [{
@@ -220,7 +225,7 @@ class GetInstanceTest(EcsConnectionTest):
             'OperationLocks': {'LockReason': []},
             'ZoneId': 'z'
         }
-        expected_result = ecs.Instance(
+        expected_result = Instance(
             'i1', 'name', 'image', 'r', 'type', 'hostname', 'running',
             ['sg1', 'sg2'], ['ip1', 'ip2'], ['ip3', 'ip4'], 'chargetype', 1, 2,
             dateutil.parser.parse('2014-02-05T00:52:32Z'), '', '', [], 'z')
@@ -314,6 +319,7 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.leave_security_group('i1', 'sg1')
         self.mox.VerifyAll()
 
+
 class DiskActionsTest(EcsConnectionTest):
 
     def testCreateDiskSizeFull(self):
@@ -404,14 +410,15 @@ class DiskActionsTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testInstanceDisks(self):
-        d1 = ecs.Disk('d1', 'system', 'cloud', 20)
-        d2 = ecs.Disk('d2', 'system', 'cloud', 20)
-        d3 = ecs.Disk('d3', 'system', 'cloud', 20)
+        d1 = Disk('d1', 'system', 'cloud', 20)
+        d2 = Disk('d2', 'system', 'cloud', 20)
+        d3 = Disk('d3', 'system', 'cloud', 20)
         self.mox.StubOutWithMock(self.conn, 'describe_disks')
         self.conn.describe_disks(instance_id='i').AndReturn([d1, d2, d3])
         self.mox.ReplayAll()
         self.assertEqual([d1, d2, d3], self.conn.describe_instance_disks('i'))
         self.mox.VerifyAll()
+
 
 class ModifyInstanceTest(EcsConnectionTest):
 
@@ -430,6 +437,7 @@ class ModifyInstanceTest(EcsConnectionTest):
             new_hostname='name', new_security_group_id='sg1',
             new_description='desc')
         self.mox.VerifyAll()
+
 
 class ModifyInstanceSpecTest(EcsConnectionTest):
 
@@ -469,8 +477,10 @@ class ModifyInstanceSpecTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.conn.modify_instance_spec('i1', instance_type='type1',
-                internet_max_bandwidth_in=1, internet_max_bandwidth_out=2)
+                                       internet_max_bandwidth_in=1,
+                                       internet_max_bandwidth_out=2)
         self.mox.VerifyAll()
+
 
 class CreateInstanceTest(EcsConnectionTest):
 
@@ -618,10 +628,10 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithBlocking(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
             None, None, None, None, None, None, None, None, None, None)
-        instance_running = ecs.Instance(
+        instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
             None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
@@ -650,7 +660,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithBlockingTimesOut(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
             None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
@@ -679,10 +689,10 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithAdditionalSecurityGroupsBlocking(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
             None, None, None, None, None, None, None, None, None, None)
-        instance_running = ecs.Instance(
+        instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
             None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
@@ -728,8 +738,8 @@ class DescribeInstanceTypesTest(EcsConnectionTest):
                 ]
             }
         }
-        expected_result = [ecs.InstanceType('t1', 2, 4),
-                           ecs.InstanceType('t2', 4, 4)]
+        expected_result = [InstanceType('t1', 2, 4),
+                           InstanceType('t2', 4, 4)]
         self.conn.get({'Action': 'DescribeInstanceTypes'}).AndReturn(
             get_response)
 
@@ -747,93 +757,92 @@ class DescribeDisksTest(EcsConnectionTest):
                 'Disk': [
                     {
                         "AttachedTime": now,
-                        "Category":"cloud",
+                        "Category": "cloud",
                         "CreationTime": now,
-                        "DeleteAutoSnapshot":"true",
-                        "DeleteWithInstance":"true",
-                        "Description":"",
-                        "DetachedTime":"",
-                        "Device":"/dev/xvda",
-                        "DiskId":"d1",
-                        "DiskName":"",
-                        "ImageId":"image-id.vhd",
-                        "InstanceId":"i-id",
-                        "OperationLocks":{
-                            "OperationLock":[]
+                        "DeleteAutoSnapshot": "true",
+                        "DeleteWithInstance": "true",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "/dev/xvda",
+                        "DiskId": "d1",
+                        "DiskName": "",
+                        "ImageId": "image-id.vhd",
+                        "InstanceId": "i-id",
+                        "OperationLocks": {
+                            "OperationLock": []
                         },
-                        "Portable":"false",
-                        "ProductCode":"",
+                        "Portable": "false",
+                        "ProductCode": "",
                         "Size":20,
-                        "SourceSnapshotId":"",
-                        "Status":"In_use",
-                        "Type":"system",
-                        "ZoneId":"zid"
+                        "SourceSnapshotId": "",
+                        "Status": "In_use",
+                        "Type": "system",
+                        "ZoneId": "zid"
                     },
                     {
                         "AttachedTime": now,
-                        "Category":"ephemeral",
+                        "Category": "ephemeral",
                         "CreationTime": now,
-                        "DeleteAutoSnapshot":"true",
-                        "DeleteWithInstance":"true",
-                        "Description":"",
-                        "DetachedTime":"",
-                        "Device":"/dev/xvda",
-                        "DiskId":"d2",
-                        "DiskName":"",
-                        "ImageId":"image-id.vhd",
-                        "InstanceId":"i-id",
-                        "OperationLocks":{
-                            "OperationLock":[]
+                        "DeleteAutoSnapshot": "true",
+                        "DeleteWithInstance": "true",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "/dev/xvda",
+                        "DiskId": "d2",
+                        "DiskName": "",
+                        "ImageId": "image-id.vhd",
+                        "InstanceId": "i-id",
+                        "OperationLocks": {
+                            "OperationLock": []
                         },
-                        "Portable":"false",
-                        "ProductCode":"",
+                        "Portable": "false",
+                        "ProductCode": "",
                         "Size":100,
-                        "SourceSnapshotId":"",
-                        "Status":"In_use",
-                        "Type":"data",
-                        "ZoneId":"zid"
+                        "SourceSnapshotId": "",
+                        "Status": "In_use",
+                        "Type": "data",
+                        "ZoneId": "zid"
                     }
                 ]
             }
-        },
-         {
+        }, {
             'Disks': {
                 'Disk': [
                     {
                         "AttachedTime": "",
-                        "Category":"cloud",
+                        "Category": "cloud",
                         "CreationTime": "",
-                        "DeleteAutoSnapshot":"",
-                        "DeleteWithInstance":"",
-                        "Description":"",
-                        "DetachedTime":"",
-                        "Device":"",
-                        "DiskId":"d3",
-                        "DiskName":"",
-                        "ImageId":"",
-                        "InstanceId":"",
-                        "OperationLocks":{
-                            "OperationLock":[]
+                        "DeleteAutoSnapshot": "",
+                        "DeleteWithInstance": "",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "",
+                        "DiskId": "d3",
+                        "DiskName": "",
+                        "ImageId": "",
+                        "InstanceId": "",
+                        "OperationLocks": {
+                            "OperationLock": []
                         },
-                        "Portable":"",
-                        "ProductCode":"",
+                        "Portable": "",
+                        "ProductCode": "",
                         "Size":20,
-                        "SourceSnapshotId":"",
-                        "Status":"",
-                        "Type":"system",
-                        "ZoneId":""
+                        "SourceSnapshotId": "",
+                        "Status": "",
+                        "Type": "system",
+                        "ZoneId": ""
                     }
                 ]
             }
         }]
         nowtime = dateutil.parser.parse(now)
-        d1 = ecs.Disk('d1', 'system', 'cloud', 20, nowtime, nowtime, True, True, None, 
-                None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
-                'In_use', 'zid')
-        d2 = ecs.Disk('d2', 'data', 'ephemeral', 100, nowtime, nowtime, True, True, None,
-                None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
-                'In_use', 'zid')
-        d3 = ecs.Disk('d3', 'system', 'cloud', 20)
+        d1 = Disk('d1', 'system', 'cloud', 20, nowtime, nowtime, True, True, None,
+                  None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                  'In_use', 'zid')
+        d2 = Disk('d2', 'data', 'ephemeral', 100, nowtime, nowtime, True, True, None,
+                  None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                  'In_use', 'zid')
+        d3 = Disk('d3', 'system', 'cloud', 20)
         self.conn.get({'Action': 'DescribeDisks',
                        'InstanceId': 'i-id',
                        'DiskIds': 'd,d',
@@ -864,11 +873,11 @@ class AutoSnapshotPolicyTest(EcsConnectionTest):
                 "DataDiskPolicyRetentionDays": "4",
                 "DataDiskPolicyRetentionLastWeek": "true"
             },
-            "RequestId":""
+            "RequestId": ""
         }
-        policy = ecs.AutoSnapshotPolicy(True, 1, 2, True, True, 3, 4, True)
-        status = ecs.AutoSnapshotExecutionStatus('Executed', 'Executed')
-        policystatus = ecs.AutoSnapshotPolicyStatus(status, policy)
+        policy = AutoSnapshotPolicy(True, 1, 2, True, True, 3, 4, True)
+        status = AutoSnapshotExecutionStatus('Executed', 'Executed')
+        policystatus = AutoSnapshotPolicyStatus(status, policy)
         self.conn.get({'Action': 'DescribeAutoSnapshotPolicy'}).AndReturn(response)
         self.mox.ReplayAll()
 
@@ -914,9 +923,8 @@ class DescribeSnapshotTest(EcsConnectionTest):
             'Progress': '100',
             'CreationTime': '2014-02-05T00:52:32Z'
         }
-        expected_result = ecs.Snapshot(
-            's1', 'name', 100,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'))
+        snaptime = dateutil.parser.parse('2014-02-05T00:52:32Z')
+        expected_result = Snapshot('s1', 'name', 100, snaptime)
         self.conn.get({'Action': 'DescribeSnapshotAttribute',
                        'SnapshotId': 's1'}).AndReturn(get_response)
 
@@ -995,15 +1003,15 @@ class DescribeSnapshotsTest(EcsConnectionTest):
             ecs.Snapshot('s3', 'auto3', 100, now, 'desc3', 'd3', 'system', 20),
             ]
         params = {
-                'Action': 'DescribeSnapshots',
-                'InstanceId': 'iid',
-                'DiskId': 'did',
-                'SnapshotIds': 's1,s2,s3'
-                }
+            'Action': 'DescribeSnapshots',
+            'InstanceId': 'iid',
+            'DiskId': 'did',
+            'SnapshotIds': 's1,s2,s3'
+        }
         self.conn.get(params, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
-        results = self.conn.describe_snapshots('iid', 'did', ['s1','s2','s3'])
+        results = self.conn.describe_snapshots('iid', 'did', ['s1', 's2', 's3'])
         self.assertEqual(expected_result, results)
         self.mox.VerifyAll()
 
@@ -1095,66 +1103,66 @@ class DescribeImagesTest(EcsConnectionTest):
 
     def testSimpleQuery(self):
         get_response = [
-                       {
-                           "Images":{
-                               "Image":[
-                                   {
-                                        "Architecture":"arch",
-                                        "CreationTime":"time",
-                                        "Description":"desc",
-                                        "DiskDeviceMappings":{
-                                            "DiskDeviceMapping":[
-                                                {
-                                                    "Device":"/dev/xvda",
-                                                    "Size":"20",
-                                                    "SnapshotId":""
-                                                }
-                                            ]
-                                        },
-                                        "ImageId":"i1",
-                                        "ImageName":"name",
-                                        "ImageOwnerAlias":"owner",
-                                        "ImageVersion":"version",
-                                        "IsSubscribed":False,
-                                        "OSName":"os",
-                                        "ProductCode":"productcode",
-                                        "Size":20
-                                    }
-                                ]
-                            }
-                        },
+            {
+                "Images": {
+                    "Image": [
                         {
-                           "Images":{
-                               "Image":[
-                                   {
-                                        "Architecture":"arch",
-                                        "CreationTime":"time",
-                                        "Description":"desc",
-                                        "DiskDeviceMappings":{
-                                            "DiskDeviceMapping":[
-                                                {
-                                                    "Device":"/dev/xvda",
-                                                    "Size":"20",
-                                                    "SnapshotId":""
-                                                }
-                                            ]
-                                        },
-                                        "ImageId":"i2",
-                                        "ImageName":"name",
-                                        "ImageOwnerAlias":"owner",
-                                        "ImageVersion":"version",
-                                        "IsSubscribed":False,
-                                        "OSName":"os",
-                                        "ProductCode":"productcode",
-                                        "Size":20
+                            "Architecture": "arch",
+                            "CreationTime": "time",
+                            "Description": "desc",
+                            "DiskDeviceMappings": {
+                                "DiskDeviceMapping": [
+                                    {
+                                        "Device": "/dev/xvda",
+                                        "Size": 20,
+                                        "SnapshotId": ""
                                     }
                                 ]
-                            }
+                            },
+                            "ImageId": "i1",
+                            "ImageName": "name",
+                            "ImageOwnerAlias": "owner",
+                            "ImageVersion": "version",
+                            "IsSubscribed": False,
+                            "OSName": "os",
+                            "ProductCode": "productcode",
+                            "Size": 20
                         }
                     ]
+                }
+            },
+            {
+                "Images": {
+                    "Image": [
+                        {
+                            "Architecture": "arch",
+                            "CreationTime": "time",
+                            "Description": "desc",
+                            "DiskDeviceMappings": {
+                                "DiskDeviceMapping": [
+                                    {
+                                        "Device": "/dev/xvda",
+                                        "Size": 20,
+                                        "SnapshotId": ""
+                                    }
+                                ]
+                            },
+                            "ImageId": "i2",
+                            "ImageName": "name",
+                            "ImageOwnerAlias": "owner",
+                            "ImageVersion": "version",
+                            "IsSubscribed": False,
+                            "OSName": "os",
+                            "ProductCode": "productcode",
+                            "Size": 20
+                        }
+                    ]
+                }
+            }
+        ]
         expected_result = [
-            ecs.Image('i1', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
-            ecs.Image('i2', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
+            Image('i1', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
+            Image('i2', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
         ]
         self.conn.get({
             'Action': 'DescribeImages',
@@ -1220,7 +1228,7 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.StubOutWithMock(time, 'sleep')
 
     def testSystemDiskNotFound(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
         self.conn.describe_instance_disks('i1').AndReturn([data_disk])
 
         self.mox.ReplayAll()
@@ -1232,8 +1240,8 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testSuccess(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
-        system_disk = ecs.Disk('d1', 'system', 'cloud', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
+        system_disk = Disk('d1', 'system', 'cloud', 100)
         self.conn.describe_instance_disks('i1').AndReturn(
             [data_disk, system_disk])
         self.conn.create_snapshot(
@@ -1248,8 +1256,8 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testFullParams(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
-        system_disk = ecs.Disk('d1', 'system', 'cloud', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
+        system_disk = Disk('d1', 'system', 'cloud', 100)
         self.conn.describe_instance_disks('i1').AndReturn(
             [data_disk, system_disk])
         self.conn.create_snapshot(
@@ -1284,9 +1292,9 @@ class DescribeSecurityGroupsTest(EcsConnectionTest):
                     ]
                 }
             }]
-        expected_result = [ecs.SecurityGroupInfo('sg1', 'd1'),
-                           ecs.SecurityGroupInfo('sg2', None),
-                           ecs.SecurityGroupInfo('sg3', 'd3')]
+        expected_result = [SecurityGroupInfo('sg1', 'd1'),
+                           SecurityGroupInfo('sg2', None),
+                           SecurityGroupInfo('sg3', 'd3')]
         self.conn.get({'Action': 'DescribeSecurityGroups'},
                       paginated=True).AndReturn(get_response)
 
@@ -1379,14 +1387,14 @@ class GetSecurityGroupTest(EcsConnectionTest):
                     'NicType': 'intranet'
                 }]}
         }
-        p1 = ecs.SecurityGroupPermission('TCP', '22/22', '2.2.2.2/32', None,
-                                         'Accept', 'internet')
-        p2 = ecs.SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
-                                         'Reject', 'internet')
-        p3 = ecs.SecurityGroupPermission('TCP', '22/22', None, 'sg2',
-                                         'Accept', 'intranet')
-        p4 = ecs.SecurityGroupPermission('TCP', '22/22', '3.3.3.3/32', None,
-                                         'Reject', 'intranet')
+        p1 = SecurityGroupPermission('TCP', '22/22', '2.2.2.2/32', None,
+                                     'Accept', 'internet')
+        p2 = SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
+                                     'Reject', 'internet')
+        p3 = SecurityGroupPermission('TCP', '22/22', None, 'sg2',
+                                     'Accept', 'intranet')
+        p4 = SecurityGroupPermission('TCP', '22/22', '3.3.3.3/32', None,
+                                     'Reject', 'intranet')
         self.conn.get({'Action': 'DescribeSecurityGroupAttribute',
                        'SecurityGroupId': 'sg',
                        'NicType': 'internet'}).AndReturn(get_response1)
@@ -1395,7 +1403,7 @@ class GetSecurityGroupTest(EcsConnectionTest):
                        'NicType': 'intranet'}).AndReturn(get_response2)
 
         self.mox.ReplayAll()
-        self.assertEqual(ecs.SecurityGroup('r', 'sg', 'd', [p1, p2, p3, p4]),
+        self.assertEqual(SecurityGroup('r', 'sg', 'd', [p1, p2, p3, p4]),
                          self.conn.get_security_group('sg'))
         self.mox.VerifyAll()
 
