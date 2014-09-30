@@ -233,6 +233,23 @@ class DiskTest(unittest.TestCase):
             repr(d1).startswith(u'<Disk d1 of type system is 5GB at'))
 
 
+class DiskMappingTest(unittest.TestCase):
+
+    def testEqual(self):
+        dm1 = ecs.DiskMapping('category', 1)
+        dm2 = ecs.DiskMapping('category', 1)
+        self.assertEqual(dm1, dm2)
+
+    def testNotEqual(self):
+        dm1 = ecs.DiskMapping('category', 1)
+        dm2 = ecs.DiskMapping('category', 2)
+        self.assertNotEqual(dm1, dm2)
+
+    def testRepr(self):
+        dm = ecs.DiskMapping('category')
+        self.assertTrue(repr(dm).startswith('<DiskMapping None type category'))
+
+
 class ImageTest(unittest.TestCase):
 
     def testEqual(self):

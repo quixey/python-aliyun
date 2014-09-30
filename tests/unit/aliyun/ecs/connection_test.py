@@ -23,6 +23,7 @@ from aliyun.ecs.model import (
     AutoSnapshotExecutionStatus,
     AutoSnapshotPolicyStatus,
     Disk,
+    DiskMappingError,
     Image,
     Instance,
     InstanceStatus,
@@ -495,6 +496,32 @@ class CreateInstanceTest(EcsConnectionTest):
         self.assertEqual(
             'i1',
             self.conn.create_instance('image', 'type', 'sg1'))
+        self.mox.VerifyAll()
+
+    def testMinimalDisks(self):
+        get_response = {'InstanceId': 'i1'}
+        self.conn.get({'Action': 'CreateInstance',
+                       'ImageId': 'image',
+                       'SecurityGroupId': 'sg1',
+                       'InstanceType': 'type',
+                       'DataDisk.1.Category': 'cloud',
+                       'DataDisk.1.Size': 1024}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        disks = [('cloud', 1024)]
+        self.assertEqual(
+            'i1',
+            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks))
+
+        self.mox.VerifyAll()
+
+    def testConflictingDisk(self):
+        self.mox.ReplayAll()
+        disks = [('cloud', 1024, 'snap')]
+        try:
+            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks)
+        except DiskMappingError, e:
+            self.assertTrue(e.__class__.__name__ == 'DiskMappingError')
+
         self.mox.VerifyAll()
 
     def testAllParams(self):

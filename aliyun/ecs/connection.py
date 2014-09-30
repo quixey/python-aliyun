@@ -19,6 +19,7 @@ from aliyun.ecs.model import (
     AutoSnapshotExecutionStatus,
     AutoSnapshotPolicyStatus,
     Disk,
+    DiskMapping,
     Image,
     Instance,
     InstanceStatus,
@@ -510,7 +511,7 @@ class EcsConnection(Connection):
                 Default: cloud.
             internet_charge_type (str): PayByBandwidth or PayByTraffic.
                 Default: PayByBandwidth.
-            data_disks (list): List of dictionaries describing the block devices.
+            data_disks (list): List of *args or **kwargs to :class:`DiskMapping`
             description (str): A long description of the instance.
             zone_id (str): An Availability Zone in the region to put the instance in.
                 E.g. 'cn-hangzhou-b'
@@ -518,8 +519,9 @@ class EcsConnection(Connection):
         Returns:
             The id of the instance created.
 
-        The data_disks device mapping dictionary describes the same Disk
-        attributes as :func:`create_disk`::
+        The data_disks argument is passed as *args (if not a dict) or **kwargs
+        (if it is a dict) to create a new :class:`.model.DiskMapping`. To create
+        two fully-specified data disks::
 
             [{
                'category': 'ephemeral',
@@ -536,14 +538,18 @@ class EcsConnection(Connection):
                'device': '/dev/xvdb'
             }]
 
-        The API supports up to 4 additional disks, each up to 1TB, so to get the
-        maximum disk space at instance creation, this should do the trick::
+        To create two minimally-specified data disks of 2000GB each:::
+
+            [('cloud', 2000), ('cloud', 2000)]
+
+        The API supports up to 4 additional disks, each up to 2000GB, so to get
+        the maximum disk space at instance creation, this should do the trick::
 
             [
-                {'category': 'cloud', 'size': 1024},
-                {'category': 'cloud', 'size': 1024},
-                {'category': 'cloud', 'size': 1024},
-                {'category': 'cloud', 'size': 1024}
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000}
             ]
         """
         params = {
@@ -568,18 +574,12 @@ class EcsConnection(Connection):
             params['InternetChargeType'] = internet_charge_type
         if data_disks != []:
             for i, disk in enumerate(data_disks):
-                ddisk = 'DataDisk.%s.' % str(i+1)
-                params[ddisk + 'Category'] = disk.get('category', '')
-                if isinstance(disk.get('size', None), int):
-                    params[ddisk + 'Size'] = disk['size']
+                if isinstance(disk, dict):
+                    ddisk = DiskMapping(**disk)
                 else:
-                    params[ddisk + 'SnapshotId'] = disk['snapshot_id']
-                if 'description' in disk:
-                    params[ddisk + 'Description'] = disk.get('description','')
-                if 'name' in disk:
-                    params[ddisk + 'DiskName'] = disk.get('name', '')
-                if 'device' in disk:
-                    params[ddisk + 'Device'] = disk.get('device', '')
+                    ddisk = DiskMapping(*disk)
+
+                params.update(ddisk.api_dict(i+1))
 
         if description:
             params['Description'] = description

@@ -341,6 +341,84 @@ class Disk(object):
                 self.__dict__ == other.__dict__)
 
 
+class DiskMappingError(Exception):
+    """DiskMappingError"""
+
+
+class DiskMapping(object):
+
+    def __init__(self, category, size=None, snapshot_id=None, name=None,
+                 description=None, device=None):
+        """DiskMapping used to create and attach a disk to an instance.
+
+        The disk can be created from either a size parameter or a snapshot_id.
+        Different disk categories support different disk sizes, and snapshots
+        need to be from the same category of disk you are creating. "cloud"
+        disks support sizes between 5 and 2000 GB. "ephemeral" disks support 5
+        to 1024 GB sizes.
+
+        Args:
+            category (str): "cloud" or "ephemeral". Usually "cloud". Check the
+                            output of :method:`aliyun.ecs.connection.EcsConnection.describe_zones`
+                            to see which categories of disks your zone supports.
+            size (int): The size of the disk. Limits depend on category.
+            snapshot_id (str): ID of :class:`.model.Snapshot` to create disk of.
+            name (str): A short name for the disk, between 2 and 128 characters.
+            description (str): A longer description of the disk. Between 2 and
+                               256 characters.
+            device (str): System device string. Leave None to defer to the system.
+                          Valid choices are from /dev/xvdb to /dev/xvdz.
+        Raises:
+            DiskMappingError: If both size and snapshot are specified.
+        """
+        if None not in (size, snapshot_id):
+            raise DiskMappingError("DiskMapping does not support both size AND snapshot. Choose one.")
+
+        self.category = category
+        self.size = size
+        self.snapshot_id = snapshot_id
+        self.name = name
+        self.description = description
+        self.device = device
+
+    def api_dict(self, ordinal=1):
+        """Serialize for insertion into API request parameters.
+
+        Args:
+            ordinal (int): The number of the data disk to serialize as.
+
+        Returns:
+            dict: A dictionary of URL GET query parameters to create the disk.
+                  E.g.::
+
+                      {
+                          'DataDisk.1.Category': 'cloud',
+                          'DataDisk.1.Size': 2000
+                      }
+        """
+        ddisk = 'DataDisk.%s.' % ordinal
+        out = {ddisk + 'Category': self.category}
+        if self.size:
+            out[ddisk + 'Size'] = self.size
+        if self.snapshot_id:
+            out[ddisk + 'SnapshotId'] = self.snapshot_id
+        if self.name:
+            out[ddisk + 'DiskName'] = self.name
+        if self.description:
+            out[ddisk + 'Description'] = self.description
+        if self.device:
+            out[ddisk + 'Device'] = self.device
+
+        return out
+
+    def __repr__(self):
+        return u'<DiskMapping %s type %s at %s>' % (
+            self.name, self.category, id(self))
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self.__dict__ == other.__dict__)
+
 class Image(object):
 
     def __init__(self, image_id, image_version, name, description, size,
