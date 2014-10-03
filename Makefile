@@ -34,8 +34,9 @@ virtualenv:
 	rm -rf python-aliyun.egg-info
 
 test: clean
-	python ./setup.py nosetests -v --with-coverage --cover-package aliyun --cover-xml --cover-xml-file=build/coverage.xml
+	python ./setup.py nosetests --verbosity 2 --tests tests/unit --with-coverage --cover-package aliyun --cover-xml --cover-xml-file=build/coverage.xml
 	mv *.egg-info build/
+	rm .coverage
 
 deb: test
 	fpm -s python -t deb --deb-user root --deb-group root --iteration=$(BUILD) .

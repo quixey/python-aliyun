@@ -60,7 +60,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [], 'z')
 
     def testEqual(self):
         instance2 = ecs.Instance(
@@ -75,7 +76,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [], 'z')
 
         self.assertEqual(self.instance1, instance2)
 
@@ -92,7 +94,8 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now)
+            1, 1, self.now,
+            'desc', 'cluster', [], 'z')
 
         self.assertNotEqual(self.instance1, instance2)
 
@@ -154,6 +157,64 @@ class SnapshotTest(unittest.TestCase):
         self.assertTrue(repr(s1).startswith(u'<Snapshot s1 is 100% ready at'))
 
 
+class AutoSnapshotPolicyTest(unittest.TestCase):
+
+    def testEqual(self):
+        asp1 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asp2 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.assertEqual(asp1, asp2)
+
+    def testNotEqual(self):
+        asp1 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asp2 = ecs.AutoSnapshotPolicy(True, 1, 1, False, False, 1, 1, False)
+        self.assertNotEqual(asp1, asp2)
+
+    def testRepr(self):
+        asp = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.assertTrue(repr(asp).startswith(u'<AutoSnapshotPolicy at'))
+
+
+class AutoSnapshotExecutionStatusTest(unittest.TestCase):
+
+    def testEqual(self):
+        ases1 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        ases2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        self.assertEqual(ases1, ases2)
+
+    def testNotEqual(self):
+        ases1 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        ases2 = ecs.AutoSnapshotExecutionStatus('not-equal', 'data-status')
+        self.assertNotEqual(ases1, ases2)
+
+    def testRepr(self):
+        ases = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        self.assertTrue(repr(ases).startswith('<AutoSnapshotExecutionStatus '))
+
+
+class AutoSnapshotPolicyStatusTest(unittest.TestCase):
+
+    def setUp(self):
+        self.policy = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        self.status = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+
+    def testEqual(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        status2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        policy2 = ecs.AutoSnapshotPolicy(False, 1, 1, False, False, 1, 1, False)
+        asps2 = ecs.AutoSnapshotPolicyStatus(status2, policy2)
+        self.assertEqual(asps1, asps2)
+
+    def testNotEqual(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        status2 = ecs.AutoSnapshotExecutionStatus('system-status', 'data-status')
+        policy2 = ecs.AutoSnapshotPolicy(True, 1, 1, False, False, 1, 1, False)
+        asps2 = ecs.AutoSnapshotPolicyStatus(status2, policy2)
+        self.assertNotEqual(asps1, asps2)
+
+    def testRepr(self):
+        asps1 = ecs.AutoSnapshotPolicyStatus(self.status, self.policy)
+        self.assertTrue(repr(asps1).startswith('<AutoSnapshotPolicyStatus at'))
+
 class DiskTest(unittest.TestCase):
 
     def testEqual(self):
@@ -172,27 +233,39 @@ class DiskTest(unittest.TestCase):
             repr(d1).startswith(u'<Disk d1 of type system is 5GB at'))
 
 
+class DiskMappingTest(unittest.TestCase):
+
+    def testEqual(self):
+        dm1 = ecs.DiskMapping('category', 1)
+        dm2 = ecs.DiskMapping('category', 1)
+        self.assertEqual(dm1, dm2)
+
+    def testNotEqual(self):
+        dm1 = ecs.DiskMapping('category', 1)
+        dm2 = ecs.DiskMapping('category', 2)
+        self.assertNotEqual(dm1, dm2)
+
+    def testRepr(self):
+        dm = ecs.DiskMapping('category')
+        self.assertTrue(repr(dm).startswith('<DiskMapping None type category'))
+
+
 class ImageTest(unittest.TestCase):
 
     def testEqual(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
-        i2 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
+        i2 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertEqual(i1, i2)
 
     def testNotEqual(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
-        i2 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 21,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
+        i2 = ecs.Image('i2', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertNotEqual(i1, i2)
 
     def testRepr(self):
-        i1 = ecs.Image('i1', '1.0', 'ubuntu12.04', 'standard image', 20,
-                       'i386', 'system', 'ubuntu', 'public')
+        i1 = ecs.Image('i1', 'version', 'name', 'desc', 1, 'arch', 'owner', 'os')
         self.assertTrue(repr(i1).startswith(
-            u'<Image i1(standard image) for platform ubuntu12.04 and arch i3'))
+            u'<Image i1(desc) for platform os and arch arch'))
 
 
 class SecurityGroupInfoTest(unittest.TestCase):
@@ -235,7 +308,7 @@ class SecurityGroupPermission(unittest.TestCase):
             u'<SecurityGroupPermission Accept TCP 22/22 from 1.1.1.1/32 at'))
 
 
-class SecurityGroup(unittest.TestCase):
+class SecurityGroupTest(unittest.TestCase):
 
     def testEqual(self):
         p1 = ecs.SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
@@ -262,3 +335,36 @@ class SecurityGroup(unittest.TestCase):
         self.assertTrue(repr(sg1).startswith(
             u'<SecurityGroup sg1, d at'))
 
+class ZoneTest(unittest.TestCase):
+
+    def testEqualSimple(self):
+        z1 = ecs.Zone('id1', 'name1')
+        z2 = ecs.Zone('id1', 'name1')
+        self.assertEqual(z1, z2)
+
+    def testEqualFull(self):
+        z1 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        z2 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        self.assertEqual(z1, z2)
+
+    def testNotEqual(self):
+        z1 = ecs.Zone('id1', 'name1')
+        z2 = ecs.Zone('id2', 'name2')
+        self.assertNotEqual(z1, z2)
+
+    def testNotEqualDeep(self):
+        z1 = ecs.Zone('id1', 'name1', ['resource1'], ['disktype1'])
+        z2 = ecs.Zone('id1', 'name1', ['resource2'], ['disktype2'])
+        self.assertNotEqual(z1, z2)
+
+    def testRepr(self):
+        z = ecs.Zone('id', 'name')
+        self.assertTrue(repr(z).startswith('<Zone id (name) at'))
+
+    def testDiskSupported(self):
+        z1 = ecs.Zone('id', 'name', ['resource1'], ['disktype1'])
+        self.assertTrue(z1.disk_supported('disktype1'))
+
+    def testResourceCreationSupported(self):
+        z1 = ecs.Zone('id', 'name', ['resource1'], ['disktype1'])
+        self.assertTrue(z1.resource_creation_supported('resource1'))

@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -19,7 +19,11 @@ import mox
 import time
 import unittest
 from aliyun.ecs.model import (
+    AutoSnapshotPolicy,
+    AutoSnapshotExecutionStatus,
+    AutoSnapshotPolicyStatus,
     Disk,
+    DiskMappingError,
     Image,
     Instance,
     InstanceStatus,
@@ -27,18 +31,25 @@ from aliyun.ecs.model import (
     SecurityGroup,
     SecurityGroupInfo,
     SecurityGroupPermission,
-    Snapshot
+    Snapshot,
+    Zone
 )
 
 from aliyun.ecs import connection as ecs
+
+
+class MockEcsInstance(object):
+    def __init__(self, instance_id, zone_id):
+        self.instance_id = instance_id
+        self.zone_id = zone_id
 
 
 class EcsConnectionTest(unittest.TestCase):
 
     def setUp(self):
         self.mox = mox.Mox()
-        self.conn = ecs.EcsConnection(
-            region_id='r', access_key_id='a', secret_access_key='s')
+        self.conn = ecs.EcsConnection(region_id='r', access_key_id='a',
+                                      secret_access_key='s')
         self.mox.StubOutWithMock(self.conn, 'get')
 
     def tearDown(self):
@@ -80,6 +91,63 @@ class GetAllRegionsTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
 
+class GetAllZonesTest(EcsConnectionTest):
+
+    def testSuccess(self):
+        get_response = {
+            'Zones': {
+                'Zone': [
+                    {'ZoneId': 'z1', 'LocalName': 'l1',
+                        'AvailableResourceCreation': {
+                            'ResourceTypes': ['Disk', 'Instance']
+                        },
+                        'AvailableDiskCategories': {
+                            'DiskCategories': ['cloud', 'ephemeral']
+                        }
+                    },
+                    {'ZoneId': 'z2', 'LocalName': 'l2',
+                        'AvailableResourceCreation': {
+                            'ResourceTypes': ['Instance']
+                        },
+                        'AvailableDiskCategories': {
+                            'DiskCategories': []
+                        }
+                    }]
+                }
+            }
+        z1 = Zone('z1', 'l1', ['Disk', 'Instance'], ['cloud', 'ephemeral'])
+        z2 = Zone('z2', 'l2', ['Instance'])
+        self.conn.get({'Action': 'DescribeZones'}).AndReturn(get_response)
+        self.mox.ReplayAll()
+
+        self.assertEqual([z1, z2], self.conn.get_all_zones())
+
+        self.mox.VerifyAll()
+
+    def testZoneIds(self):
+        z1 = Zone('z1', 'l1')
+        z2 = Zone('z2', 'l2')
+        self.mox.StubOutWithMock(self.conn, 'get_all_zones')
+        self.conn.get_all_zones().AndReturn([z1, z2])
+        self.mox.ReplayAll()
+
+        self.assertEqual(['z1', 'z2'], self.conn.get_all_zone_ids())
+
+        self.mox.VerifyAll()
+
+
+class GetAllClustersTest(EcsConnectionTest):
+    def testGetAllClusters(self):
+        resp = {'Clusters': {'Cluster': [
+            {'ClusterId': 'c1'},
+            {'ClusterId': 'c2'}
+            ]}}
+        self.conn.get({'Action': 'DescribeClusters'}).AndReturn(resp)
+        self.mox.ReplayAll()
+        self.assertEqual(['c1', 'c2'], self.conn.get_all_clusters())
+        self.mox.VerifyAll()
+
+
 class GetAllInstanceStatusTest(EcsConnectionTest):
 
     def testSuccess(self):
@@ -98,15 +166,15 @@ class GetAllInstanceStatusTest(EcsConnectionTest):
                     ]
                 }
             }]
-        expected_result = [ecs.InstanceStatus('i1', 'running'),
-                           ecs.InstanceStatus('i2', 'stopped'),
-                           ecs.InstanceStatus('i3', 'running')]
-        self.conn.get({'Action': 'DescribeInstanceStatus'},
+        expected_result = [InstanceStatus('i1', 'running'),
+                           InstanceStatus('i2', 'stopped'),
+                           InstanceStatus('i3', 'running')]
+        self.conn.get({'Action': 'DescribeInstanceStatus', 'ZoneId': 'z'},
                       paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.get_all_instance_status())
+                         self.conn.get_all_instance_status(zone_id='z'))
         self.mox.VerifyAll()
 
     def testGetIds(self):
@@ -152,12 +220,16 @@ class GetInstanceTest(EcsConnectionTest):
             'CreationTime': '2014-02-05T00:52:32Z',
             'SecurityGroupIds': {'SecurityGroupId': ['sg1', 'sg2']},
             'PublicIpAddress': {'IpAddress': ['ip1', 'ip2']},
-            'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']}
+            'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
+            'Description': '',
+            'ClusterId': '',
+            'OperationLocks': {'LockReason': []},
+            'ZoneId': 'z'
         }
-        expected_result = ecs.Instance(
+        expected_result = Instance(
             'i1', 'name', 'image', 'r', 'type', 'hostname', 'running',
             ['sg1', 'sg2'], ['ip1', 'ip2'], ['ip3', 'ip4'], 'chargetype', 1, 2,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'))
+            dateutil.parser.parse('2014-02-05T00:52:32Z'), '', '', [], 'z')
         self.conn.get({'Action': 'DescribeInstanceAttribute',
                        'InstanceId': 'i1'}).AndReturn(get_response)
 
@@ -221,6 +293,15 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.delete_instance('i1')
         self.mox.VerifyAll()
 
+    def testReplaceSystemDisk(self):
+        self.conn.get({
+            'Action': 'ReplaceSystemDisk',
+            'InstanceId': 'i',
+            'ImageId': 'img'}).AndReturn({'DiskId': 'd'})
+        self.mox.ReplayAll()
+        self.assertEqual('d', self.conn.replace_system_disk('i', 'img'))
+        self.mox.VerifyAll()
+
     def testJoinSecurityGroup(self):
         self.conn.get({'Action': 'JoinSecurityGroup',
                        'InstanceId': 'i1',
@@ -239,74 +320,108 @@ class InstanceActionsTest(EcsConnectionTest):
         self.conn.leave_security_group('i1', 'sg1')
         self.mox.VerifyAll()
 
-    def testAddDiskSize(self):
-        self.conn.get({'Action': 'AddDisk',
-                       'InstanceId': 'i1',
-                       'Size': 5})
+
+class DiskActionsTest(EcsConnectionTest):
+
+    def testCreateDiskSizeFull(self):
+        self.conn.get({'Action': 'CreateDisk',
+                       'ZoneId': 'z1',
+                       'DiskName': 'name',
+                       'Description': 'desc',
+                       'Size': 5}).AndReturn({'DiskId': 'd'})
         self.mox.ReplayAll()
-        self.conn.add_disk('i1', 5)
+        self.conn.create_disk('z1', 'name', 'desc', 5, None)
         self.mox.VerifyAll()
 
-    def testAddDiskSnapshot(self):
-        self.conn.get({'Action': 'AddDisk',
-                       'InstanceId': 'i1',
-                       'SnapshotId': 'snap'})
+    def testCreateDiskSnapshot(self):
+        self.conn.get({'Action': 'CreateDisk',
+                       'ZoneId': 'z1',
+                       'SnapshotId': 'snap'}).AndReturn({'DiskId': 'd1'})
         self.mox.ReplayAll()
-        self.conn.add_disk('i1', snapshot_id='snap')
+        self.assertEqual('d1', self.conn.create_disk('z1', snapshot_id='snap'))
+        self.mox.VerifyAll()
+
+    def testAttachDisk(self):
+        self.conn.get({'Action': 'AttachDisk',
+                       'InstanceId': 'i1',
+                       'Device': 'dev',
+                       'DeleteWithInstance': True,
+                       'DiskId': 'd1'})
+        self.mox.ReplayAll()
+        self.conn.attach_disk('i1', 'd1', 'dev', True)
+        self.mox.VerifyAll()
+
+    def testAddDisk(self):
+        self.mox.StubOutWithMock(self.conn, 'get_instance')
+        self.conn.get_instance('i1').AndReturn(MockEcsInstance('i1', 'z1'))
+        self.mox.StubOutWithMock(self.conn, 'create_disk')
+        self.conn.create_disk('z1', 'name', 'desc', None, 'snap').AndReturn('d')
+        self.mox.StubOutWithMock(self.conn, 'attach_disk')
+        self.conn.attach_disk('i1', 'd', 'dev', True)
+        self.mox.ReplayAll()
+
+        d = self.conn.add_disk('i1', None, 'snap', 'name', 'desc', 'dev', True)
+        self.assertEqual(d, 'd')
+
+        self.mox.VerifyAll()
+
+    def testResetDisk(self):
+        self.conn.get({'Action': 'ResetDisk', 'DiskId': 'd', 'SnapshotId': 's'})
+        self.mox.ReplayAll()
+        self.conn.reset_disk('d', 's')
         self.mox.VerifyAll()
 
     def testDeleteDisk(self):
         self.conn.get({'Action': 'DeleteDisk',
-                       'InstanceId': 'i1',
                        'DiskId': 'd1'})
         self.mox.ReplayAll()
-        self.conn.delete_disk('i1', 'd1')
+        self.conn.delete_disk('d1')
         self.mox.VerifyAll()
 
-    def testAddDiskArgs(self):
+    def testCreateDiskArgs(self):
         try:
-            self.conn.add_disk('i1', size=5, snapshot_id='snap')
+            self.conn.create_disk('i1', size=5, snapshot_id='snap')
         except ecs.Error, e:
             self.assertTrue(e.message.startswith("Use size or snapshot_id."))
 
+    def testDetachDisk(self):
+        self.conn.get({'Action': 'DetachDisk',
+                       'InstanceId': 'i',
+                       'DiskId': 'd'})
+        self.mox.ReplayAll()
+
+        self.conn.detach_disk('i', 'd')
+
+        self.mox.VerifyAll()
+
+    def testModifyDisk(self):
+        self.conn.get({'Action': 'ModifyDiskAttribute',
+                       'DiskId': 'd',
+                       'DiskName': 'name',
+                       'Description': 'desc',
+                       'DeleteWithInstance': True})
+        self.mox.ReplayAll()
+        self.conn.modify_disk('d', 'name', 'desc', True)
+        self.mox.VerifyAll()
+
+    def testReInitDisk(self):
+        self.conn.get({'Action': 'ReInitDisk', 'DiskId': 'd'})
+        self.mox.ReplayAll()
+        self.conn.reinit_disk('d')
+        self.mox.VerifyAll()
+
+    def testInstanceDisks(self):
+        d1 = Disk('d1', 'system', 'cloud', 20)
+        d2 = Disk('d2', 'system', 'cloud', 20)
+        d3 = Disk('d3', 'system', 'cloud', 20)
+        self.mox.StubOutWithMock(self.conn, 'describe_disks')
+        self.conn.describe_disks(instance_id='i').AndReturn([d1, d2, d3])
+        self.mox.ReplayAll()
+        self.assertEqual([d1, d2, d3], self.conn.describe_instance_disks('i'))
+        self.mox.VerifyAll()
+
 
 class ModifyInstanceTest(EcsConnectionTest):
-
-    def testModifyInstanceName(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'InstanceName': 'name'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_instance_name='name')
-        self.mox.VerifyAll()
-
-    def testModifyPassword(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'Password': 'pw'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_password='pw')
-        self.mox.VerifyAll()
-
-    def testModifyHostname(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'HostName': 'name'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_hostname='name')
-        self.mox.VerifyAll()
-
-    def testModifySecurityGroupId(self):
-        self.conn.get({'Action': 'ModifyInstanceAttribute',
-                       'InstanceId': 'i1',
-                       'SecurityGroupId': 'sg1'})
-
-        self.mox.ReplayAll()
-        self.conn.modify_instance('i1', new_security_group_id='sg1')
-        self.mox.VerifyAll()
 
     def testModifyAll(self):
         self.conn.get({'Action': 'ModifyInstanceAttribute',
@@ -314,13 +429,16 @@ class ModifyInstanceTest(EcsConnectionTest):
                        'InstanceName': 'name',
                        'Password': 'pw',
                        'HostName': 'name',
-                       'SecurityGroupId': 'sg1'})
+                       'SecurityGroupId': 'sg1',
+                       'Description': 'desc'})
 
         self.mox.ReplayAll()
         self.conn.modify_instance(
             'i1', new_instance_name='name', new_password='pw',
-            new_hostname='name', new_security_group_id='sg1')
+            new_hostname='name', new_security_group_id='sg1',
+            new_description='desc')
         self.mox.VerifyAll()
+
 
 class ModifyInstanceSpecTest(EcsConnectionTest):
 
@@ -360,8 +478,10 @@ class ModifyInstanceSpecTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.conn.modify_instance_spec('i1', instance_type='type1',
-                internet_max_bandwidth_in=1, internet_max_bandwidth_out=2)
+                                       internet_max_bandwidth_in=1,
+                                       internet_max_bandwidth_out=2)
         self.mox.VerifyAll()
+
 
 class CreateInstanceTest(EcsConnectionTest):
 
@@ -376,6 +496,32 @@ class CreateInstanceTest(EcsConnectionTest):
         self.assertEqual(
             'i1',
             self.conn.create_instance('image', 'type', 'sg1'))
+        self.mox.VerifyAll()
+
+    def testMinimalDisks(self):
+        get_response = {'InstanceId': 'i1'}
+        self.conn.get({'Action': 'CreateInstance',
+                       'ImageId': 'image',
+                       'SecurityGroupId': 'sg1',
+                       'InstanceType': 'type',
+                       'DataDisk.1.Category': 'cloud',
+                       'DataDisk.1.Size': 1024}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        disks = [('cloud', 1024)]
+        self.assertEqual(
+            'i1',
+            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks))
+
+        self.mox.VerifyAll()
+
+    def testConflictingDisk(self):
+        self.mox.ReplayAll()
+        disks = [('cloud', 1024, 'snap')]
+        try:
+            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks)
+        except DiskMappingError, e:
+            self.assertTrue(e.__class__.__name__ == 'DiskMappingError')
+
         self.mox.VerifyAll()
 
     def testAllParams(self):
@@ -393,10 +539,25 @@ class CreateInstanceTest(EcsConnectionTest):
                        'InternetChargeType': 'PayByBandwidth',
                        'DataDisk.1.Category': 'cloud',
                        'DataDisk.1.Size': 5,
+                       'DataDisk.1.Description': 'dd-1-desc',
+                       'DataDisk.1.DiskName': 'dd-1-name',
+                       'DataDisk.1.Device': '/dev/xvd-testing',
                        'DataDisk.2.Category': 'ephemeral',
-                       'DataDisk.2.SnapshotId': 'snap'}).AndReturn(
+                       'DataDisk.2.SnapshotId': 'snap',
+                       'Description': 'desc',
+                       'ZoneId': 'test-zone-a'}).AndReturn(
             get_response)
 
+        disks = [
+            {
+                'category': 'cloud',
+                'size': 5,
+                'description': 'dd-1-desc',
+                'name': 'dd-1-name',
+                'device': '/dev/xvd-testing'
+            },
+            {'category': 'ephemeral', 'snapshot_id': 'snap'}
+        ]
         self.mox.ReplayAll()
         self.assertEqual(
             'i1',
@@ -405,7 +566,7 @@ class CreateInstanceTest(EcsConnectionTest):
                 internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
                 hostname='hname', password='pw', system_disk_type='cloud',
                 internet_charge_type='PayByBandwidth',
-                data_disks=[('cloud', 5), ('ephemeral', 'snap')]))
+                data_disks=disks, description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
 
 
@@ -434,7 +595,8 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[],
+            description=None, zone_id=None).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -453,7 +615,8 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
             hostname='hname', password='pw', system_disk_type='cloud',
             internet_charge_type='PayByBandwidth',
-            data_disks=[('cloud', 5)]).AndReturn('i1')
+            data_disks=[('cloud', 5)], description='desc',
+            zone_id='test-zone-a').AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.start_instance('i1')
 
@@ -463,7 +626,8 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
             hostname='hname', password='pw', system_disk_type='cloud',
             internet_charge_type='PayByBandwidth', assign_public_ip=False,
-            block_till_ready=False, data_disks=[('cloud', 5)]))
+            block_till_ready=False, data_disks=[('cloud', 5)],
+            description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
 
     def testWithAdditionalSecurityGroupsNoBlock(self):
@@ -471,7 +635,8 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[],
+            description=None, zone_id=None).AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.join_security_group('i1', 'sg2')
         self.conn.join_security_group('i1', 'sg3')
@@ -490,17 +655,18 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithBlocking(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None)
-        instance_running = ecs.Instance(
+            None, None, None, None, None, None, None, None, None, None)
+        instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[],
+            description=None, zone_id=None).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -521,14 +687,15 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithBlockingTimesOut(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[],
+            description=None, zone_id=None).AndReturn('i1')
         self.conn.get({
             'Action': 'AllocatePublicIpAddress',
             'InstanceId': 'i1'
@@ -549,17 +716,18 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testWithAdditionalSecurityGroupsBlocking(self):
-        instance_starting = ecs.Instance(
+        instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None)
-        instance_running = ecs.Instance(
+            None, None, None, None, None, None, None, None, None, None)
+        instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
             internet_max_bandwidth_in=None, internet_max_bandwidth_out=None,
-            password=None, system_disk_type=None, data_disks=[]).AndReturn('i1')
+            password=None, system_disk_type=None, data_disks=[],
+            description=None, zone_id=None).AndReturn('i1')
         time.sleep(mox.IsA(int))
         self.conn.join_security_group('i1', 'sg2')
         self.conn.join_security_group('i1', 'sg3')
@@ -597,8 +765,8 @@ class DescribeInstanceTypesTest(EcsConnectionTest):
                 ]
             }
         }
-        expected_result = [ecs.InstanceType('t1', 2, 4),
-                           ecs.InstanceType('t2', 4, 4)]
+        expected_result = [InstanceType('t1', 2, 4),
+                           InstanceType('t2', 4, 4)]
         self.conn.get({'Action': 'DescribeInstanceTypes'}).AndReturn(
             get_response)
 
@@ -607,28 +775,157 @@ class DescribeInstanceTypesTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
 
-class DescribeInstanceDisksTest(EcsConnectionTest):
+class DescribeDisksTest(EcsConnectionTest):
 
     def testSuccess(self):
-        get_response = {
+        now = "2014-09-03T23:37:37Z"
+        get_response = [{
             'Disks': {
                 'Disk': [
-                    {'DiskId': 'd1', 'Type': 'system',
-                     'Category': 'cloud', 'Size': '20'},
-                    {'DiskId': 'd2', 'Type': 'data',
-                     'Category': 'ephemeral', 'Size': '100'}
+                    {
+                        "AttachedTime": now,
+                        "Category": "cloud",
+                        "CreationTime": now,
+                        "DeleteAutoSnapshot": "true",
+                        "DeleteWithInstance": "true",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "/dev/xvda",
+                        "DiskId": "d1",
+                        "DiskName": "",
+                        "ImageId": "image-id.vhd",
+                        "InstanceId": "i-id",
+                        "OperationLocks": {
+                            "OperationLock": []
+                        },
+                        "Portable": "false",
+                        "ProductCode": "",
+                        "Size":20,
+                        "SourceSnapshotId": "",
+                        "Status": "In_use",
+                        "Type": "system",
+                        "ZoneId": "zid"
+                    },
+                    {
+                        "AttachedTime": now,
+                        "Category": "ephemeral",
+                        "CreationTime": now,
+                        "DeleteAutoSnapshot": "true",
+                        "DeleteWithInstance": "true",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "/dev/xvda",
+                        "DiskId": "d2",
+                        "DiskName": "",
+                        "ImageId": "image-id.vhd",
+                        "InstanceId": "i-id",
+                        "OperationLocks": {
+                            "OperationLock": []
+                        },
+                        "Portable": "false",
+                        "ProductCode": "",
+                        "Size":100,
+                        "SourceSnapshotId": "",
+                        "Status": "In_use",
+                        "Type": "data",
+                        "ZoneId": "zid"
+                    }
                 ]
             }
-        }
-        expected_result = [ecs.Disk('d1', 'system', 'cloud', 20),
-                           ecs.Disk('d2', 'data', 'ephemeral', 100)]
-        self.conn.get({'Action': 'DescribeInstanceDisks',
-                       'InstanceId': 'i1'}).AndReturn(get_response)
+        }, {
+            'Disks': {
+                'Disk': [
+                    {
+                        "AttachedTime": "",
+                        "Category": "cloud",
+                        "CreationTime": "",
+                        "DeleteAutoSnapshot": "",
+                        "DeleteWithInstance": "",
+                        "Description": "",
+                        "DetachedTime": "",
+                        "Device": "",
+                        "DiskId": "d3",
+                        "DiskName": "",
+                        "ImageId": "",
+                        "InstanceId": "",
+                        "OperationLocks": {
+                            "OperationLock": []
+                        },
+                        "Portable": "",
+                        "ProductCode": "",
+                        "Size":20,
+                        "SourceSnapshotId": "",
+                        "Status": "",
+                        "Type": "system",
+                        "ZoneId": ""
+                    }
+                ]
+            }
+        }]
+        nowtime = dateutil.parser.parse(now)
+        d1 = Disk('d1', 'system', 'cloud', 20, nowtime, nowtime, True, True, None,
+                  None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                  'In_use', 'zid')
+        d2 = Disk('d2', 'data', 'ephemeral', 100, nowtime, nowtime, True, True, None,
+                  None, '/dev/xvda', 'image-id.vhd', 'i-id', [], False, None, None,
+                  'In_use', 'zid')
+        d3 = Disk('d3', 'system', 'cloud', 20)
+        self.conn.get({'Action': 'DescribeDisks',
+                       'InstanceId': 'i-id',
+                       'DiskIds': 'd,d',
+                       'ZoneId': 'z'}, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(
-            expected_result,
-            self.conn.describe_instance_disks('i1'))
+            [d1, d2, d3],
+            self.conn.describe_disks(instance_id='i-id', zone_id='z', disk_ids=['d','d']))
+        self.mox.VerifyAll()
+
+
+class AutoSnapshotPolicyTest(EcsConnectionTest):
+
+    def testDescribeAutoSnapshotPolicy(self):
+        response = {
+            "AutoSnapshotExcutionStatus": {
+                "DataDiskExcutionStatus": "Executed",
+                "SystemDiskExcutionStatus": "Executed"
+            },
+            "AutoSnapshotPolicy": {
+                "SystemDiskPolicyEnabled": "true",
+                "SystemDiskPolicyTimePeriod": "1",
+                "SystemDiskPolicyRetentionDays": "2",
+                "SystemDiskPolicyRetentionLastWeek": "true",
+                "DataDiskPolicyEnabled": "true",
+                "DataDiskPolicyTimePeriod": "3",
+                "DataDiskPolicyRetentionDays": "4",
+                "DataDiskPolicyRetentionLastWeek": "true"
+            },
+            "RequestId": ""
+        }
+        policy = AutoSnapshotPolicy(True, 1, 2, True, True, 3, 4, True)
+        status = AutoSnapshotExecutionStatus('Executed', 'Executed')
+        policystatus = AutoSnapshotPolicyStatus(status, policy)
+        self.conn.get({'Action': 'DescribeAutoSnapshotPolicy'}).AndReturn(response)
+        self.mox.ReplayAll()
+
+        self.assertEqual(self.conn.describe_auto_snapshot_policy(), policystatus)
+
+        self.mox.VerifyAll()
+
+    def testModifyAutoSnapshotPolicy(self):
+        self.conn.get({
+            'Action': 'ModifyAutoSnapshotPolicy',
+            'SystemDiskPolicyEnabled': 'true',
+            'SystemDiskPolicyTimePeriod': 1,
+            'SystemDiskPolicyRetentionDays': 2,
+            'SystemDiskPolicyRetentionLastWeek': 'true',
+            'DataDiskPolicyEnabled': 'true',
+            'DataDiskPolicyTimePeriod': 3,
+            'DataDiskPolicyRetentionDays': 4,
+            'DataDiskPolicyRetentionLastWeek': 'true'
+            })
+        self.mox.ReplayAll()
+        self.conn.modify_auto_snapshot_policy(True, 1, 2, True, True, 3, 4, True)
         self.mox.VerifyAll()
 
 
@@ -637,11 +934,10 @@ class DeleteSnapshotTest(EcsConnectionTest):
     def testSuccess(self):
         self.conn.get({'Action': 'DeleteSnapshot',
                        'InstanceId': 'i1',
-                       'DiskId': 'd1',
                        'SnapshotId': 's1'})
 
         self.mox.ReplayAll()
-        self.conn.delete_snapshot('i1', 'd1', 's1')
+        self.conn.delete_snapshot('i1', 's1')
         self.mox.VerifyAll()
 
 
@@ -654,9 +950,8 @@ class DescribeSnapshotTest(EcsConnectionTest):
             'Progress': '100',
             'CreationTime': '2014-02-05T00:52:32Z'
         }
-        expected_result = ecs.Snapshot(
-            's1', 'name', 100,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'))
+        snaptime = dateutil.parser.parse('2014-02-05T00:52:32Z')
+        expected_result = Snapshot('s1', 'name', 100, snaptime)
         self.conn.get({'Action': 'DescribeSnapshotAttribute',
                        'SnapshotId': 's1'}).AndReturn(get_response)
 
@@ -684,34 +979,67 @@ class DescribeSnapshotTest(EcsConnectionTest):
 class DescribeSnapshotsTest(EcsConnectionTest):
 
     def testSuccess(self):
-        get_response = {
-            'Snapshots': {
-                'Snapshot': [
-                    {'SnapshotId': 's1',
-                     'SnapshotName': 'n1',
-                     'Progress': '100',
-                     'CreationTime': '2014-02-05T00:52:32Z'},
-                    {'SnapshotId': 's2',
-                     'Progress': '100',
-                     'CreationTime': '2014-02-05T00:52:32Z'}
+        get_response = [
+            {"Snapshots": {
+                "SnapshotResource": [
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc1",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s1",
+                        "SnapshotName": "auto1",
+                        "SourceDiskId": "d1",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    },
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc2",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s2",
+                        "SnapshotName": "auto2",
+                        "SourceDiskId": "d2",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    }
                 ]
-            }
+            }},
+            {"Snapshots": {
+                "SnapshotResource": [
+                    {
+                        "CreationTime": "2014-09-22T20:21:41Z",
+                        "Description": "desc3",
+                        "ProductCode": "",
+                        "Progress": "100%",
+                        "SnapshotId": "s3",
+                        "SnapshotName": "auto3",
+                        "SourceDiskId": "d3",
+                        "SourceDiskSize": "20",
+                        "SourceDiskType": "system"
+                    }
+                ]
+            }}
+        ]
+
+        now = dateutil.parser.parse('2014-09-22T20:21:41Z')
+        expected_result = [
+            ecs.Snapshot('s1', 'auto1', 100, now, 'desc1', 'd1', 'system', 20),
+            ecs.Snapshot('s2', 'auto2', 100, now, 'desc2', 'd2', 'system', 20),
+            ecs.Snapshot('s3', 'auto3', 100, now, 'desc3', 'd3', 'system', 20),
+            ]
+        params = {
+            'Action': 'DescribeSnapshots',
+            'InstanceId': 'iid',
+            'DiskId': 'did',
+            'SnapshotIds': 's1,s2,s3'
         }
-        expected_result = [ecs.Snapshot(
-            's1', 'n1', 100, dateutil.parser.parse('2014-02-05T00:52:32Z')),
-            ecs.Snapshot(
-                's2', None, 100, dateutil.parser.parse(
-                    '2014-02-05T00:52:32Z'))]
-        self.conn.get({'Action': 'DescribeSnapshots',
-                       'InstanceId': 'i1',
-                       'DiskId': 'd1'}).AndReturn(get_response)
+        self.conn.get(params, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
-        self.assertEqual(
-            expected_result,
-            self.conn.describe_snapshots(
-                'i1',
-                'd1'))
+        results = self.conn.describe_snapshots('iid', 'did', ['s1', 's2', 's3'])
+        self.assertEqual(expected_result, results)
         self.mox.VerifyAll()
 
 
@@ -734,18 +1062,19 @@ class CreateSnapshotTest(EcsConnectionTest):
         self.assertEqual('s1', self.conn.create_snapshot('i1', 'd1'))
         self.mox.VerifyAll()
 
-    def testNoBlockingWithName(self):
+    def testNoBlockingWithParams(self):
         get_response = {
             'SnapshotId': 's1'
         }
         self.conn.get({'Action': 'CreateSnapshot',
                        'InstanceId': 'i1',
                        'DiskId': 'd1',
+                       'Description': 'desc',
                        'SnapshotName': 'n'}).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual('s1', self.conn.create_snapshot(
-            'i1', 'd1', snapshot_name='n'))
+            'i1', 'd1', snapshot_name='n', description='desc'))
         self.mox.VerifyAll()
 
     def testBlockingTimesOut(self):
@@ -800,110 +1129,77 @@ class CreateSnapshotTest(EcsConnectionTest):
 class DescribeImagesTest(EcsConnectionTest):
 
     def testSimpleQuery(self):
-        get_response = [{
-            'Images': {
-                'Image': [
-                    {'ImageId': 'i1',
-                     'ImageVersion': '1.0',
-                     'Platform': 'p1',
-                     'Description': 'desc',
-                     'Size': '50',
-                     'Architecture': 'i386',
-                     'ImageOwnerAlias': 'system',
-                     'OSName': 'os1',
-                     'Visibility': 'public'},
-                    {'ImageId': 'i2',
-                     'Platform': 'p2',
-                     'ImageOwnerAlias': 'system'}
-                ]
-            }
-        },
+        get_response = [
             {
-                'Images': {
-                    'Image': [
-                        {'ImageId': 'i3',
-                         'Platform': 'p3',
-                         'ImageOwnerAlias': 'system'}
+                "Images": {
+                    "Image": [
+                        {
+                            "Architecture": "arch",
+                            "CreationTime": "time",
+                            "Description": "desc",
+                            "DiskDeviceMappings": {
+                                "DiskDeviceMapping": [
+                                    {
+                                        "Device": "/dev/xvda",
+                                        "Size": 20,
+                                        "SnapshotId": ""
+                                    }
+                                ]
+                            },
+                            "ImageId": "i1",
+                            "ImageName": "name",
+                            "ImageOwnerAlias": "owner",
+                            "ImageVersion": "version",
+                            "IsSubscribed": False,
+                            "OSName": "os",
+                            "ProductCode": "productcode",
+                            "Size": 20
+                        }
                     ]
                 }
-            }]
-        expected_result = [
-            ecs.Image('i1', '1.0', 'p1', 'desc', 50, 'i386', 'system',
-                      'os1', 'public'),
-            ecs.Image(
-                'i2',
-                None,
-                'p2',
-                None,
-                None,
-                None,
-                'system',
-                None,
-                None),
-            ecs.Image('i3', None, 'p3', None, None, None, 'system', None, None)
+            },
+            {
+                "Images": {
+                    "Image": [
+                        {
+                            "Architecture": "arch",
+                            "CreationTime": "time",
+                            "Description": "desc",
+                            "DiskDeviceMappings": {
+                                "DiskDeviceMapping": [
+                                    {
+                                        "Device": "/dev/xvda",
+                                        "Size": 20,
+                                        "SnapshotId": ""
+                                    }
+                                ]
+                            },
+                            "ImageId": "i2",
+                            "ImageName": "name",
+                            "ImageOwnerAlias": "owner",
+                            "ImageVersion": "version",
+                            "IsSubscribed": False,
+                            "OSName": "os",
+                            "ProductCode": "productcode",
+                            "Size": 20
+                        }
+                    ]
+                }
+            }
         ]
-        self.conn.get({'Action': 'DescribeImages'},
-                      paginated=True).AndReturn(get_response)
+        expected_result = [
+            Image('i1', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
+            Image('i2', 'version', 'name', 'desc', 20, 'arch', 'owner', 'os'),
+        ]
+        self.conn.get({
+            'Action': 'DescribeImages',
+            'ImageId': 'i1,i2',
+            'ImageOwnerAlias': 'system',
+            'SnapshotId': 'snap'}, paginated=True).AndReturn(get_response)
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.describe_images())
-        self.mox.VerifyAll()
-
-    def testWithParams(self):
-        get_response = [{
-            'Images': {
-                'Image': [
-                    {'ImageId': 'i1',
-                     'ImageVersion': '1.0',
-                     'Platform': 'p1',
-                     'Description': 'desc',
-                     'Size': '50',
-                     'Architecture': 'i386',
-                     'ImageOwnerAlias': 'system',
-                     'OSName': 'os1',
-                     'Visibility': 'public'},
-                    {'ImageId': 'i2',
-                     'Platform': 'p2',
-                     'ImageOwnerAlias': 'system'}
-                ]
-            }
-        },
-            {
-                'Images': {
-                    'Image': [
-                        {'ImageId': 'i3',
-                         'Platform': 'p3',
-                         'ImageOwnerAlias': 'other'}
-                    ]
-                }
-            }]
-        expected_result = [
-            ecs.Image('i1', '1.0', 'p1', 'desc', 50, 'i386', 'system',
-                      'os1', 'public'),
-            ecs.Image(
-                'i2',
-                None,
-                'p2',
-                None,
-                None,
-                None,
-                'system',
-                None,
-                None),
-            ecs.Image('i3', None, 'p3', None, None, None, 'other', None, None)
-        ]
-        self.conn.get({'Action': 'DescribeImages',
-                       'ImageId': 'i1,i2,i3',
-                       'ImageOwnerAlias': 'system,other'},
-                      paginated=True).AndReturn(get_response)
-
-        self.mox.ReplayAll()
-        self.assertEqual(
-            expected_result,
-            self.conn.describe_images(
-                image_ids=['i1', 'i2', 'i3'],
-                owner_alias=['system', 'other']))
+                         self.conn.describe_images(['i1', 'i2'], ['system'],'snap'))
         self.mox.VerifyAll()
 
 
@@ -959,7 +1255,7 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.StubOutWithMock(time, 'sleep')
 
     def testSystemDiskNotFound(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
         self.conn.describe_instance_disks('i1').AndReturn([data_disk])
 
         self.mox.ReplayAll()
@@ -971,8 +1267,8 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testSuccess(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
-        system_disk = ecs.Disk('d1', 'system', 'cloud', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
+        system_disk = Disk('d1', 'system', 'cloud', 100)
         self.conn.describe_instance_disks('i1').AndReturn(
             [data_disk, system_disk])
         self.conn.create_snapshot(
@@ -987,8 +1283,8 @@ class CreateImageFromInstanceTest(EcsConnectionTest):
         self.mox.VerifyAll()
 
     def testFullParams(self):
-        data_disk = ecs.Disk('d2', 'data', 'ephemeral', 100)
-        system_disk = ecs.Disk('d1', 'system', 'cloud', 100)
+        data_disk = Disk('d2', 'data', 'ephemeral', 100)
+        system_disk = Disk('d1', 'system', 'cloud', 100)
         self.conn.describe_instance_disks('i1').AndReturn(
             [data_disk, system_disk])
         self.conn.create_snapshot(
@@ -1023,9 +1319,9 @@ class DescribeSecurityGroupsTest(EcsConnectionTest):
                     ]
                 }
             }]
-        expected_result = [ecs.SecurityGroupInfo('sg1', 'd1'),
-                           ecs.SecurityGroupInfo('sg2', None),
-                           ecs.SecurityGroupInfo('sg3', 'd3')]
+        expected_result = [SecurityGroupInfo('sg1', 'd1'),
+                           SecurityGroupInfo('sg2', None),
+                           SecurityGroupInfo('sg3', 'd3')]
         self.conn.get({'Action': 'DescribeSecurityGroups'},
                       paginated=True).AndReturn(get_response)
 
@@ -1118,14 +1414,14 @@ class GetSecurityGroupTest(EcsConnectionTest):
                     'NicType': 'intranet'
                 }]}
         }
-        p1 = ecs.SecurityGroupPermission('TCP', '22/22', '2.2.2.2/32', None,
-                                         'Accept', 'internet')
-        p2 = ecs.SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
-                                         'Reject', 'internet')
-        p3 = ecs.SecurityGroupPermission('TCP', '22/22', None, 'sg2',
-                                         'Accept', 'intranet')
-        p4 = ecs.SecurityGroupPermission('TCP', '22/22', '3.3.3.3/32', None,
-                                         'Reject', 'intranet')
+        p1 = SecurityGroupPermission('TCP', '22/22', '2.2.2.2/32', None,
+                                     'Accept', 'internet')
+        p2 = SecurityGroupPermission('TCP', '22/22', '1.1.1.1/32', None,
+                                     'Reject', 'internet')
+        p3 = SecurityGroupPermission('TCP', '22/22', None, 'sg2',
+                                     'Accept', 'intranet')
+        p4 = SecurityGroupPermission('TCP', '22/22', '3.3.3.3/32', None,
+                                     'Reject', 'intranet')
         self.conn.get({'Action': 'DescribeSecurityGroupAttribute',
                        'SecurityGroupId': 'sg',
                        'NicType': 'internet'}).AndReturn(get_response1)
@@ -1134,7 +1430,7 @@ class GetSecurityGroupTest(EcsConnectionTest):
                        'NicType': 'intranet'}).AndReturn(get_response2)
 
         self.mox.ReplayAll()
-        self.assertEqual(ecs.SecurityGroup('r', 'sg', 'd', [p1, p2, p3, p4]),
+        self.assertEqual(SecurityGroup('r', 'sg', 'd', [p1, p2, p3, p4]),
                          self.conn.get_security_group('sg'))
         self.mox.VerifyAll()
 
