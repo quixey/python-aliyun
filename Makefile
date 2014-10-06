@@ -23,7 +23,6 @@ BUILD=0
 all: clean test
 
 clean:
-	rm -rf build
 	rm -rf python-aliyun*.deb build *.egg-info *.egg
 	find . -name '*.pyc' -exec rm {} \;
 	mkdir build
