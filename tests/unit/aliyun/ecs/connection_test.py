@@ -981,7 +981,7 @@ class DescribeSnapshotsTest(EcsConnectionTest):
     def testSuccess(self):
         get_response = [
             {"Snapshots": {
-                "SnapshotResource": [
+                "Snapshot": [
                     {
                         "CreationTime": "2014-09-22T20:21:41Z",
                         "Description": "desc1",
@@ -1007,7 +1007,7 @@ class DescribeSnapshotsTest(EcsConnectionTest):
                 ]
             }},
             {"Snapshots": {
-                "SnapshotResource": [
+                "Snapshot": [
                     {
                         "CreationTime": "2014-09-22T20:21:41Z",
                         "Description": "desc3",
