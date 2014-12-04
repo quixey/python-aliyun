@@ -2,21 +2,21 @@
 Aliyun API
 ==========
 
-The Aliyun API is well-documented at `dev.aliyun.com <http://dev.aliyun.com/thread.php?spm=0.0.0.0.MqTmNj&fid=8>`_. 
+The Aliyun API is well-documented at `dev.aliyun.com <http://dev.aliyun.com/thread.php?spm=0.0.0.0.MqTmNj&fid=8>`_.
 Each service's API is very similar: There are regions, actions, and each action has many parameters.
 It is an OAuth2 API, so you need to have an ID and a secret. You can get these from the Aliyun management console.
 
 Authentication
 ==============
 
-You will need security credentials for your Aliyun account. You can view and 
-create them in the `Aliyun management console <http://console.aliyun.com>`_. This 
+You will need security credentials for your Aliyun account. You can view and
+create them in the `Aliyun management console <http://console.aliyun.com>`_. This
 library will look for credentials in the following places:
 
  1. Environment variables `ALI_ACCESS_KEY_ID` and `ALI_SECRET_ACCESS_KEY`
  2. An ini-style configuration file at `~/.aliyun.cfg` with contents like:
    ::
-    
+
     [default]
     access_key_id=xxxxxxxxxxxxx
     secret_access_key=xxxxxxxxxxxxxxxxxxxxxxx
@@ -30,9 +30,9 @@ Main Interfaces
 ===============
 
 The main components of python-aliyun are ECS and SLB. Other Aliyun products will
-be added as API support develops. Within each Aliyun product, we tried to 
-implement every API Action variation available. We used a boto-style design 
-where most API interaction is done with a connection object which marshalls 
+be added as API support develops. Within each Aliyun product, we tried to
+implement every API Action variation available. We used a boto-style design
+where most API interaction is done with a connection object which marshalls
 Python objects and API representations.
 
 *ECS*:
@@ -67,4 +67,4 @@ It accepts arbitrary Key=Value pairs and passes them on to the API after wrappin
     ali --region cn-hangzhou slb Action=DescribeLoadBalancers
 
 """
-__version__ = "0.7"
+__version__ = "0.8"
