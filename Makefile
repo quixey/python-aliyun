@@ -33,7 +33,7 @@ virtualenv:
 	rm -rf python-aliyun.egg-info
 
 test: clean
-	python ./setup.py nosetests --verbosity 2 --tests tests/unit --with-coverage --cover-package aliyun --cover-xml --cover-xml-file=build/coverage.xml --with-xunit --xunit-file=build/xunit-results.xml
+	python ./setup.py nosetests
 	mv *.egg-info build/
 	rm .coverage
 
