@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -111,7 +111,7 @@ class Connection(object):
             self.version = '2014-05-26'
         elif service == 'slb':
             self.service = 'https://slb.aliyuncs.com'
-            self.version = '2013-02-21'
+            self.version = '2014-05-15'
         else:
             raise NotImplementedError(
                 'Currently only "ecs" and "slb" are supported.')
