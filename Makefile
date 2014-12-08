@@ -32,10 +32,13 @@ virtualenv:
 	$(VENV_ACTIVATE) && python setup.py --quiet develop
 	rm -rf python-aliyun.egg-info
 
-test: clean
+test:
 	python ./setup.py nosetests
 	mv *.egg-info build/
-	rm .coverage
+
+functionaltest:
+	python ./setup.py nosetests -w tests/functional/readonly.py
+	mv *.egg-info build/
 
 deb: test
 	fpm -s python -t deb --deb-user root --deb-group root --iteration=$(BUILD) .

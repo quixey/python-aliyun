@@ -44,6 +44,12 @@ class EcsReadOnlyTest(unittest.TestCase):
         inst = self.c.get_instance(instanceids.pop())
         self.assertTrue(inst is not None)
 
+    def testInstancesInZone(self):
+        zones = self.c.get_all_zones()
+        zone_id = zones.pop().zone_id
+        instances = self.c.get_all_instances(zone_id)
+        self.assertEqual(instances.pop().zone_id, zone_id)
+
     def testDescribeDisks(self):
         disks = self.c.describe_disks()
         self.assertTrue(len(disks)>0)
