@@ -34,15 +34,18 @@ virtualenv:
 
 test:
 	python ./setup.py nosetests
+	mkdir -p build
 	mv *.egg-info build/
 
 functionaltest:
 	python ./setup.py nosetests -w tests/functional/readonly.py
+	mkdir -p build
 	mv *.egg-info build/
 
 deb: test
 	fpm -s python -t deb --deb-user root --deb-group root --iteration=$(BUILD) .
 	rm -rf *.egg-info
+	mkdir -p build
 	mv *.deb build/
 
 docs: test
