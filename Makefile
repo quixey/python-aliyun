@@ -33,19 +33,19 @@ virtualenv:
 	rm -rf python-aliyun.egg-info
 
 test:
-	python ./setup.py nosetests
 	mkdir -p build
+	python ./setup.py nosetests
 	mv *.egg-info build/
 
 functionaltest:
-	python ./setup.py nosetests -w tests/functional/readonly.py
 	mkdir -p build
+	python ./setup.py nosetests -w tests/functional/readonly.py
 	mv *.egg-info build/
 
 deb: test
+	mkdir -p build
 	fpm -s python -t deb --deb-user root --deb-group root --iteration=$(BUILD) .
 	rm -rf *.egg-info
-	mkdir -p build
 	mv *.deb build/
 
 docs: test
