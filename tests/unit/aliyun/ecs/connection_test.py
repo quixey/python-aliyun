@@ -15,6 +15,7 @@
 
 import datetime
 import dateutil.parser
+import json
 import mox
 import time
 import unittest
@@ -944,37 +945,24 @@ class DeleteSnapshotTest(EcsConnectionTest):
 class DescribeSnapshotTest(EcsConnectionTest):
 
     def testSuccess(self):
-        get_response = {
-            'SnapshotId': 's1',
-            'SnapshotName': 'name',
-            'Progress': '100',
-            'CreationTime': '2014-02-05T00:52:32Z'
-        }
-        snaptime = dateutil.parser.parse('2014-02-05T00:52:32Z')
-        expected_result = Snapshot('s1', 'name', 100, snaptime)
-        self.conn.get({'Action': 'DescribeSnapshotAttribute',
-                       'SnapshotId': 's1'}).AndReturn(get_response)
-
+        # describe_snapshot is a simple wrapper around describe_snapshots
+        self.mox.StubOutWithMock(self.conn, 'describe_snapshots')
+        self.conn.describe_snapshots(snapshot_ids=['s-snap']).AndReturn(['thing'])
         self.mox.ReplayAll()
-        self.assertEqual(expected_result, self.conn.describe_snapshot('s1'))
+        self.assertEqual(self.conn.describe_snapshot('s-snap'), 'thing')
         self.mox.VerifyAll()
 
-    def testNoName(self):
-        get_response = {
-            'SnapshotId': 's1',
-            'Progress': '100',
-            'CreationTime': '2014-02-05T00:52:32Z'
-        }
-        expected_result = ecs.Snapshot(
-            's1', None, 100,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'))
-        self.conn.get({'Action': 'DescribeSnapshotAttribute',
-                       'SnapshotId': 's1'}).AndReturn(get_response)
-
+    def testFailure(self):
+        # describe_snapshot is a simple wrapper around describe_snapshots
+        self.mox.StubOutWithMock(self.conn, 'describe_snapshots')
+        self.conn.describe_snapshots(snapshot_ids=['s-snap']).AndReturn([])
         self.mox.ReplayAll()
-        self.assertEqual(expected_result, self.conn.describe_snapshot('s1'))
-        self.mox.VerifyAll()
+        try:
+            self.conn.describe_snapshot('s-snap')
+        except ecs.Error, e:
+            self.assertTrue(e.message.startswith('Could not find'))
 
+        self.mox.VerifyAll()
 
 class DescribeSnapshotsTest(EcsConnectionTest):
 
@@ -1033,7 +1021,7 @@ class DescribeSnapshotsTest(EcsConnectionTest):
             'Action': 'DescribeSnapshots',
             'InstanceId': 'iid',
             'DiskId': 'did',
-            'SnapshotIds': 's1,s2,s3'
+            'SnapshotIds': json.dumps(['s1', 's2', 's3'])
         }
         self.conn.get(params, paginated=True).AndReturn(get_response)
 
