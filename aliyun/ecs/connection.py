@@ -32,6 +32,7 @@ from aliyun.ecs.model import (
     Zone
 )
 import dateutil.parser
+import json
 import time
 
 
@@ -927,13 +928,11 @@ class EcsConnection(Connection):
         Returns:
             :class:`.model.Snapshot`.
         """
-        resp = self.get({'Action': 'DescribeSnapshotAttribute',
-                         'SnapshotId': snapshot_id})
-        return Snapshot(
-            resp['SnapshotId'],
-            resp['SnapshotName'] if 'SnapshotName' in resp else None,
-            int(resp['Progress']),
-            dateutil.parser.parse(resp['CreationTime']))
+        snaps = self.describe_snapshots(snapshot_ids=[snapshot_id])
+        if len(snaps) == 1:
+            return snaps[0]
+        else:
+            raise Error("Could not find the snapshot: %s" % snapshot_id)
 
     def describe_snapshots(self, instance_id=None, disk_id=None,
                            snapshot_ids=None):
@@ -955,7 +954,7 @@ class EcsConnection(Connection):
         if disk_id:
             params['DiskId'] = disk_id
         if snapshot_ids:
-            params['SnapshotIds'] = ','.join(snapshot_ids)
+            params['SnapshotIds'] = json.dumps(snapshot_ids)
 
         for resp in self.get(params, paginated=True):
             for snapshot in resp['Snapshots']['Snapshot']:
