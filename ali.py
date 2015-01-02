@@ -79,7 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--secret-access-key', help='secret access key')
     parser.add_argument('-r', '--region_id', help='region id to connect to')
     parser.add_argument('--log-level', default='INFO')
-    parser.add_argument('-S', '--service', help='the API service to use.', choices=['ecs', 'slb'])
+    parser.add_argument('-S', '--service', help='the API service to use.', choices=['ecs', 'slb', 'ess'])
     parser.add_argument('remainder', nargs='+')
     args = parser.parse_args()
 

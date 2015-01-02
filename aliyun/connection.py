@@ -35,9 +35,13 @@ PAGE_SIZE = 50
 
 
 class Error(Exception):
-
     """Base exception class for this module."""
 
+class MissingParameterError(Error):
+    """The request is missing a required parameter."""
+
+class InvalidParameterError(Error):
+    """The request has an invalid parameter."""
 
 def find_credentials():
     """Tries to get the aliyun credentials from the following in priority:
@@ -112,9 +116,12 @@ class Connection(object):
         elif service == 'slb':
             self.service = 'https://slb.aliyuncs.com'
             self.version = '2013-02-21'
+        elif service == 'ess':
+            self.service = 'https://ess.aliyuncs.com'
+            self.version = '2014-08-28'
         else:
             raise NotImplementedError(
-                'Currently only "ecs" and "slb" are supported.')
+                'Currently only "ecs", "slb", and "ess" are supported.')
 
         if access_key_id is None or secret_access_key is None:
             creds = find_credentials()
@@ -193,7 +200,20 @@ class Connection(object):
             return json.loads(unicode_response)
         except urllib2.HTTPError as e:
             self.logging.error('Error GETing URL: %s' % request.get_full_url())
-            raise Error(e.read())
+            self.process_error(**json.loads(e.read()))
+            
+    def process_error(self, *args, **kwargs):
+        """Process specific error codes and messages"""
+        code = kwargs.get('Code')
+        errors = {
+            'MissingParameter': MissingParameterError,
+            'InvalidParameter': InvalidParameterError,
+        }
+        self.logging.error("Error Details:")
+        for k, v in kwargs.iteritems():
+            self.logging.error('%s: %s' % (k, v))
+
+        raise errors.get(code, Error)(kwargs.get('Message'))
 
     def _get_remaining_pages(self, total_count):
         """Get the remaining pages for the given count.

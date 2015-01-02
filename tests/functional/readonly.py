@@ -16,6 +16,8 @@
 
 import aliyun.ecs.connection
 import aliyun.slb.connection
+import aliyun.ess.connection
+import aliyun.ess.model
 import unittest
 
 class EcsReadOnlyTest(unittest.TestCase):
@@ -69,6 +71,17 @@ class EcsReadOnlyTest(unittest.TestCase):
 
     def testAutoSnapshotPolicy(self):
         print self.c.describe_auto_snapshot_policy()
+
+class EssReadOnlyTests(unittest.TestCase):
+
+    def setUp(self):
+        self.con = aliyun.ess.connection('cn-qingdao')
+    
+    def describeGroupsTest(self):
+        groups = self.con.describe_scaling_groups()
+        self.assertTrue(isinstance(groups, list))
+        if len(groups) > 0:
+            self.assertTrue(isinstance(groups[0], aliyun.ess.model.ScalingGroup))
 
 if __name__ == '__main__':
     unittests.main()

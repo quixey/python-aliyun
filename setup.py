@@ -20,6 +20,7 @@ setup_requires = [
     'nose>=1.3.0',
     'sphinx',
     'sphinxcontrib-programoutput',
+    'sphinxcontrib-napoleon',
 ]
 
 tests_require = setup_requires + [
@@ -31,12 +32,12 @@ setup(name='Aliyun',
       version=aliyun_version,
       description='Python client for Aliyun APIs.',
       author='Adam Gray, Akshay Dayal',
-      author_email='adam@addumb.com, akshay@quixey.com',
+      author_email='adam@addumb.com, akshay_abd@yahoo.com',
       packages=find_packages(exclude=["tests*"]),
-      setup_requires = setup_requires,
+      setup_requires=setup_requires,
       scripts=['ali.py'],
-      tests_require = tests_require,
-      install_requires = [
+      tests_require=tests_require,
+      install_requires=[
           'python-dateutil'
       ]
     )
