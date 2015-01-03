@@ -1,37 +1,17 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations under
 # the License.
-
-class Region(object):
-    """Aliyun ESS Region.
-
-       Args:
-           region_id (str): The id of the region.
-           local_name (str): The local name of the region.
-    """
-
-    def __init__(self, region_id, local_name):
-        self.region_id = region_id
-        self.local_name = local_name
-
-    def __repr__(self):
-        return u'<Region %s (%s) at %s>' % (
-            self.region_id, self.local_name, id(self))
-
-    def __eq__(self, other):
-        return (self.__class__ == other.__class__ and
-                self.__dict__ == other.__dict__)
 
 
 class ScalingGroup(object):
@@ -51,7 +31,8 @@ class ScalingGroup(object):
         default_cooldown (int): Number of seconds between scaling activities.
         removal_policies (list): List of removal policies. See
             :func:`.connection.EssConnection.create_scaling_group`.
-        load_balancer_id (str): ID of associated :class:`aliyun.slb.model.LoadBalancer`.
+        load_balancer_id (str): ID of associated
+            :class:`aliyun.slb.model.LoadBalancer`.
         db_instance_ids (list): List of RDS DB Instance Ids
         lifecycle_state (str): Current lifecycle state. One of 'Inactive',
             'Active', or 'Deleting'.
@@ -66,11 +47,13 @@ class ScalingGroup(object):
     """
 
     def __init__(self, scaling_group_id, scaling_group_name,
-            active_scaling_configuration_id, region_id, min_size, max_size,
-            default_cooldown, removal_policies, db_instance_ids,
-            load_balancer_id):
+                 active_scaling_configuration_id, region_id, min_size,
+                 max_size, default_cooldown, removal_policies,
+                 load_balancer_id, db_instance_ids, lifecycle_state,
+                 total_capacity, active_capacity, pending_capacity,
+                 removing_capacity, creation_time):
 
-        self.scaling_group_id = scaling_group_id   
+        self.scaling_group_id = scaling_group_id
         self.scaling_group_name = scaling_group_name
         self.active_scaling_configuration_id = active_scaling_configuration_id
         self.region_id = region_id
@@ -95,8 +78,11 @@ class ScalingGroup(object):
         )
 
     def __eq__(self, other):
+        print self.__dict__
+        print other.__dict__
         return (self.__class__ == other.__class__ and
                 self.__dict__ == other.__dict__)
+
 
 class ScalingConfiguration(object):
     def __init__(self):
