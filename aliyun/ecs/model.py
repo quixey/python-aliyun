@@ -25,8 +25,8 @@ class Region(object):
         self.local_name = local_name
 
     def __repr__(self):
-        return u'<Region %s (%s) at %s>' % (
-            self.region_id, self.local_name, id(self))
+        return (u'<Region %s (%s) at %s>' % (
+            self.region_id, self.local_name, id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -103,8 +103,8 @@ class InstanceStatus(object):
         self.status = status
 
     def __repr__(self):
-        return u'<InstanceId %s is %s at %s>' % (
-            self.instance_id, self.status, id(self))
+        return (u'<InstanceId %s is %s at %s>' % (
+            self.instance_id, self.status, id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -126,9 +126,9 @@ class InstanceType(object):
         self.memory_size = memory_size
 
     def __repr__(self):
-        return u'<InstanceType %s has %s cores and %sGB memory at %s>' % (
+        return (u'<InstanceType %s has %s cores and %sGB memory at %s>' % (
             self.instance_type_id, self.cpu_core_count, self.memory_size,
-            id(self))
+            id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -159,8 +159,8 @@ class Snapshot(object):
         self.source_disk_size = source_disk_size
 
     def __repr__(self):
-        return u'<Snapshot %s is %s%% ready at %s>' % (
-            self.snapshot_id, self.progress, id(self))
+        return (u'<Snapshot %s is %s%% ready at %s>' % (
+            self.snapshot_id, self.progress, id(self))).encode('utf-8')
 
     def __eq__(self, other):
         print self.__dict__
@@ -220,7 +220,7 @@ class AutoSnapshotPolicy(object):
         self.data_disk_retention_last_week = data_disk_retention_last_week
 
     def __repr__(self):
-        return u'<AutoSnapshotPolicy at %s>' % id(self)
+        return '<AutoSnapshotPolicy at %s>' % id(self)
 
     def __eq__(self, other):
         print self.__dict__
@@ -250,7 +250,7 @@ class AutoSnapshotExecutionStatus(object):
         self.data_disk_execution_status = data_disk_execution_status
 
     def __repr__(self):
-        return u'<AutoSnapshotExecutionStatus at %s>' % id(self)
+        return '<AutoSnapshotExecutionStatus at %s>' % id(self)
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -264,7 +264,7 @@ class AutoSnapshotPolicyStatus(object):
         self.policy = policy
 
     def __repr__(self):
-        return u'<AutoSnapshotPolicyStatus at %s>' % id(self)
+        return '<AutoSnapshotPolicyStatus at %s>' % id(self)
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -331,7 +331,7 @@ class Disk(object):
         self.zone_id = zone_id
 
     def __repr__(self):
-        return u'<Disk %s of type %s is %sGB at %s>' % (
+        return '<Disk %s of type %s is %sGB at %s>' % (
             self.disk_id, self.disk_type, self.disk_size, id(self))
 
     def __eq__(self, other):
@@ -412,8 +412,8 @@ class DiskMapping(object):
         return out
 
     def __repr__(self):
-        return u'<DiskMapping %s type %s at %s>' % (
-            self.name, self.category, id(self))
+        return (u'<DiskMapping %s type %s at %s>' % (
+            self.name, self.category, id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -444,9 +444,9 @@ class Image(object):
         self.os_name = os_name
 
     def __repr__(self):
-        return u'<Image %s(%s) for platform %s and arch %s at %s>' % (
+        return (u'<Image %s(%s) for platform %s and arch %s at %s>' % (
             self.image_id, self.description, self.os_name, self.architecture,
-            id(self))
+            id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -466,8 +466,9 @@ class SecurityGroupInfo(object):
         self.description = description
 
     def __repr__(self):
-        return u'<SecurityGroupInfo %s, %s at %s>' % (
-            self.security_group_id, self.description, id(self))
+        return (u'<SecurityGroupInfo %s, %s at %s>' % (
+            self.security_group_id, self.description, id(self)
+            )).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -496,11 +497,11 @@ class SecurityGroupPermission(object):
         self.nic_type = nic_type
 
     def __repr__(self):
-        return u'<SecurityGroupPermission %s %s %s from %s at %s>' % (
+        return (u'<SecurityGroupPermission %s %s %s from %s at %s>' % (
             self.policy, self.ip_protocol, self.port_range,
             self.source_cidr_ip
             if self.source_cidr_ip else self.source_group_id,
-            id(self))
+            id(self))).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -524,8 +525,9 @@ class SecurityGroup(object):
         self.permissions = permissions
 
     def __repr__(self):
-        return u'<SecurityGroup %s, %s at %s>' % (
-            self.security_group_id, self.description, id(self))
+        return (u'<SecurityGroup %s, %s at %s>' % (
+            self.security_group_id, self.description, id(self)
+            )).encode('utf-8')
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__ and
@@ -549,8 +551,8 @@ class Zone(object):
         self.available_disk_types = available_disk_types
 
     def __repr__(self):
-        return u'<Zone %s (%s) at %s>' % (
-            self.zone_id, self.local_name, id(self))
+        return (u'<Zone %s (%s) at %s>' % (
+            self.zone_id, self.local_name, id(self))).encode('utf-8')
 
     def disk_supported(self, disk_type):
         """Convenience method to say whether a disk type is supported.
