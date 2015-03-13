@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -123,28 +123,57 @@ class SlbConnection(connection.Connection):
                             resp['LoadBalancerName'],
                             resp['LoadBalancerStatus'],
                             resp['Address'],
-                            resp['IsPublicAddress'] == 'true',
+                            resp['AddressType'],
                             [port for port in resp['ListenerPorts']
                                 ['ListenerPort']],
                             backend_servers)
 
-    def create_load_balancer(self, load_balancer_name=None, is_public=True):
+    def create_load_balancer(self, region_id,
+                             address_type=None,
+                             internet_charge_type=None,
+                             bandwidth=None,
+                             load_balancer_name=None):
         """Create a load balancer. This does not configure listeners nor
         backend servers.
 
         Args:
-            load_balancer_name (str): The name of the SLB. Optional.
-            is_public (bool): Make the SLB listen on the public network (True,
-                              default) or the private network (False)
+            region_id (str): An id from get_all_region_ids()
+            addres_type (str): IP the SLB on the public network ('internet',
+                               default) or the private network ('intranet')
+            internet_charge_type (str): 'paybytraffic' (default) vs
+                                        'paybybandwidth'
+            bandwidth (int): peak burst speed of 'paybybandwidth' type slbs.
+                             Listener must be set first before this will take
+                             effect. default: 1 (unit Mbps)
+            load_balancer_name (str): Name of the SLB. 80 char max. Optional.
         Returns:
             load_balancer_id of the created LB. Address and Name are not given.
         """
         params = {
-                'Action': 'CreateLoadBalancer',
-                'IsPublicAddress': str(is_public).lower()
-                }
-        if load_balancer_name != None:
+            'Action': 'CreateLoadBalancer',
+            'RegionId': region_id
+            }
+
+        if load_balancer_name is not None:
+            if len(load_balancer_name) > 80:
+                raise Warning('load_balancer_name longer than 80 chars')
             params['LoadBalancerName'] = load_balancer_name
+
+        if address_type is not None:
+            if address_type.lower() not in ['intranet', 'internet']:
+                raise Warning('unknown address_type. please choose internet or intranet')
+            params['AddressType'] = address_type.lower()
+
+        if internet_charge_type is not None:
+            if internet_charge_type.lower() not in ['paybybandwidth',
+                                                    'paybytraffic']:
+                raise Warning('unknown charge type')
+            params['InternetChargeType'] = internet_charge_type.lower()
+
+        if bandwidth is not None:
+            if 1 < bandwidth < 1000:
+                raise Warning('bandwidth must be between 1 and 1000')
+            params['Bandwidth'] = bandwidth
 
         resp = self.get(params)
         self.logging.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s".format(resp))
@@ -433,7 +462,7 @@ class SlbConnection(connection.Connection):
             persistence_timeout (int): number of seconds to hold TCP
                 connection open
         """
-        params = { 'Action': 'SetLoadBalancerTCPListenerAttribute',
+        params = {'Action': 'SetLoadBalancerTCPListenerAttribute',
                 'LoadBalancerId': load_balancer_id,
                 'ListenerPort': listener_port}
         if healthy_threshold != None:
@@ -629,7 +658,7 @@ class SlbConnection(connection.Connection):
         params['BackendServers'] = backends
 
         return self.get(params)
-        
+
     def add_backend_server_ids(self, load_balancer_id, backend_server_ids):
         """Helper wrapper to add backend server IDs specified to the SLB
            specified.
@@ -640,7 +669,7 @@ class SlbConnection(connection.Connection):
         """
         backends = [BackendServer(bsid, None) for bsid in backend_server_ids]
         return self.add_backend_servers(load_balancer_id, backends)
-    
+
     def deregister_backend_server_ids(self, server_ids):
         """Helper wrapper to get load balancers with the server id in them and
         remove the server from each load balancer.

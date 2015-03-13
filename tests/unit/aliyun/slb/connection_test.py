@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -138,7 +138,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'BackendServers': {
                 'BackendServer': []
             },
-            'IsPublicAddress': 'true',
+            'AddressType': 'i',
             'ListenerPorts': {
                 'ListenerPort': [1]
             },
@@ -147,7 +147,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'LoadBalancerStatus': 's',
             'RegionId': 'r'
         }
-        expect = slb.LoadBalancer('id', 'r', 'n', 's', 'a', True, [1])
+        expect = slb.LoadBalancer('id', 'r', 'n', 's', 'a', 'i', [1])
         self.conn.get({'Action': 'DescribeLoadBalancerAttribute',
                        'LoadBalancerId': 'id'}).AndReturn(get_response)
         self.mox.ReplayAll()
@@ -162,7 +162,7 @@ class TestLoadBalancer(SlbConnectionTest):
                     {'ServerId': 'sid1', 'Weight': 1},
                     {'ServerId': 'sid2', 'Weight': 1},
                 ]},
-            'IsPublicAddress': 'true',
+            'AddressType': 'i',
             'ListenerPorts': {
                 'ListenerPort': [1]
             },
@@ -181,7 +181,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'n',
             's',
             'a',
-            True,
+            'i',
             [1],
             expected_backends)
         self.conn.get({'Action': 'DescribeLoadBalancerAttribute',
@@ -195,20 +195,21 @@ class TestLoadBalancer(SlbConnectionTest):
                         'LoadBalancerId':'id',
                         'LoadBalancerName':'name'}
         self.conn.get({'Action': 'CreateLoadBalancer',
-                       'IsPublicAddress':'true'}).AndReturn(get_response)
+                       'RegionId':'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
-        self.assertEqual('id', self.conn.create_load_balancer())
+        self.assertEqual('id', self.conn.create_load_balancer('r'))
         self.mox.VerifyAll()
 
     def testCreateFull(self):
-        get_response = {'Address': 'address',
+        get_response = {'Address': 'a',
                         'LoadBalancerId':'id',
-                        'LoadBalancerName':'name'}
+                        'LoadBalancerName':'n'}
         self.conn.get({'Action': 'CreateLoadBalancer',
-                       'LoadBalancerName': 'name',
-                       'IsPublicAddress':'false'}).AndReturn(get_response)
+                       'LoadBalancerName': 'n',
+                       'RegionId':'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
-        self.assertEqual('id', self.conn.create_load_balancer('name',False))
+        #self.assertEqual('id', self.conn.create_load_balancer('r'))
+        self.assertEqual('id', self.conn.create_load_balancer('r', load_balancer_name='n'))
         self.mox.VerifyAll()
 
     def testSetStatus(self):

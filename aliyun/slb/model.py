@@ -1,11 +1,11 @@
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -66,7 +66,7 @@ class LoadBalancer(object):
         load_balancer_name (str): description of the SLB.
         load_balancer_status (str): status of the SLB. 'inactive' or 'active'
         address (str): IP address of the SLB.
-        is_public_address (bool): wether or not the SLB IP is public.
+        address_type (str): internet vs intranet
         listener_ports (list int): Ports which have listeners
         backend_servers (list of BackendServer, optional): BackendServers to
                         put into the load balancer
@@ -77,7 +77,7 @@ class LoadBalancer(object):
                  load_balancer_name,
                  load_balancer_status,
                  address,
-                 is_public_address,
+                 address_type,
                  listener_ports,
                  backend_servers=[]):
 
@@ -90,7 +90,7 @@ class LoadBalancer(object):
         self.load_balancer_name = load_balancer_name
         self.load_balancer_status = load_balancer_status
         self.address = address
-        self.is_public_address = is_public_address
+        self.address_type = address_type
         self.listener_ports = listener_ports
         self.backend_servers = backend_servers
 
