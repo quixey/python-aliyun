@@ -192,24 +192,42 @@ class TestLoadBalancer(SlbConnectionTest):
 
     def testCreateMinimal(self):
         get_response = {'Address': 'address',
-                        'LoadBalancerId':'id',
-                        'LoadBalancerName':'name'}
+                        'LoadBalancerId': 'id',
+                        'LoadBalancerName': 'name'}
         self.conn.get({'Action': 'CreateLoadBalancer',
-                       'RegionId':'r'}).AndReturn(get_response)
+                       'RegionId': 'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
         self.assertEqual('id', self.conn.create_load_balancer('r'))
         self.mox.VerifyAll()
 
     def testCreateFull(self):
         get_response = {'Address': 'a',
-                        'LoadBalancerId':'id',
-                        'LoadBalancerName':'n'}
+                        'LoadBalancerId': 'id',
+                        'AddressType': 'i',
+                        'InternetChargeType': 'pbbw',
+                        'Bandwidth': 1000,
+                        'LoadBalancerName': 'n'}
         self.conn.get({'Action': 'CreateLoadBalancer',
                        'LoadBalancerName': 'n',
-                       'RegionId':'r'}).AndReturn(get_response)
+                       'AddressType': 'i',
+                       'InternetChargeType': 'pbbw',
+                       'Bandwidth': 1000,
+                       'RegionId': 'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
-        #self.assertEqual('id', self.conn.create_load_balancer('r'))
-        self.assertEqual('id', self.conn.create_load_balancer('r', load_balancer_name='n'))
+        lb = self.conn.create_load_balancer(region_id='r',
+                                            load_balancer_name='n',
+                                            address_type='i',
+                                            internet_charge_type='pbbw',
+                                            bandwidth=1000)
+        self.assertEqual('id', lb)
+        self.mox.VerifyAll()
+
+    def testDeleteLoadBalancer(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'DeleteLoadBalancer',
+                       'LoadBalancerId': 'i'}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.delete_load_balancer('i')
         self.mox.VerifyAll()
 
     def testSetStatus(self):
