@@ -230,6 +230,24 @@ class TestLoadBalancer(SlbConnectionTest):
         self.conn.delete_load_balancer('i')
         self.mox.VerifyAll()
 
+    def testStartLoadBalancerListener(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'StartLoadBalancerListener',
+                       'LoadBalancerId': 'i',
+                       'ListenerPort': 1}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.start_load_balancer_listener('i', 1)
+        self.mox.VerifyAll()
+
+    def testStopLoadBalancerListener(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'StopLoadBalancerListener',
+                       'LoadBalancerId': 'i',
+                       'ListenerPort': 1}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.stop_load_balancer_listener('i', 1)
+        self.mox.VerifyAll()
+
     def testSetStatus(self):
         self.conn.get({'Action': 'SetLoadBalancerStatus',
                        'LoadBalancerId': 'id',

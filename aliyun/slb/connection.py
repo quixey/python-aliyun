@@ -54,7 +54,6 @@ class SlbConnection(connection.Connection):
             region_id, 'slb', access_key_id=access_key_id,
             secret_access_key=secret_access_key)
 
-
     def get_all_regions(self):
         """Get all regions.
 
@@ -68,7 +67,6 @@ class SlbConnection(connection.Connection):
 
     def get_all_region_ids(self):
         return [r.region_id for r in self.get_all_regions()]
-
 
     def get_all_load_balancer_status(self, instance_id=None):
         """Get all LoadBalancerStatus in the region.
@@ -95,13 +93,11 @@ class SlbConnection(connection.Connection):
 
         return lb_status
 
-
     def get_all_load_balancer_ids(self):
         """Get all the load balancer IDs in the region."""
         return (
             [x.load_balancer_id for x in self.get_all_load_balancer_status()]
         )
-
 
     def delete_load_balancer(self, load_balancer_id):
         """Delete a LoadBalancer by ID
@@ -115,7 +111,6 @@ class SlbConnection(connection.Connection):
         }
 
         return self.get(params)
-
 
     def get_load_balancer(self, load_balancer_id):
         """Get a LoadBalancer by ID.
@@ -144,7 +139,6 @@ class SlbConnection(connection.Connection):
                             [port for port in resp['ListenerPorts']
                                 ['ListenerPort']],
                             backend_servers)
-
 
     def create_load_balancer(self, region_id,
                              address_type=None,
@@ -188,7 +182,6 @@ class SlbConnection(connection.Connection):
         self.logging.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s".format(resp))
         return resp['LoadBalancerId']
 
-
     def set_load_balancer_status(self, load_balancer_id, status):
         """Set the Status of an SLB
 
@@ -202,7 +195,6 @@ class SlbConnection(connection.Connection):
             'LoadBalancerStatus': status
         }
         return self.get(params)
-
 
     def set_load_balancer_name(self, load_balancer_id, name):
         """Set the Name of an SLB
@@ -218,7 +210,6 @@ class SlbConnection(connection.Connection):
         }
         return self.get(params)
 
-
     def delete_listener(self, load_balancer_id, listener_port):
         """Delete the SLB Listner on specified port
 
@@ -232,7 +223,6 @@ class SlbConnection(connection.Connection):
             'ListenerPort': listener_port
         }
         return self.get(params)
-
 
     def set_listener_status(self, load_balancer_id, listener_port, status):
         """Set the status of an SLB Listener. Turn them on or off.
@@ -249,7 +239,6 @@ class SlbConnection(connection.Connection):
             'ListenerStatus': status
         }
         return self.get(params)
-
 
     def get_tcp_listener(self, load_balancer_id, listener_port):
         """Get the TCP Listener from an SLB ID and port
@@ -310,7 +299,6 @@ class SlbConnection(connection.Connection):
                             cookie=resp['Cookie'] or None,
                             domain=resp['Domain'] or None,
                             uri=resp['URI'])
-
 
     def create_tcp_listener(self, load_balancer_id, listener_port,
                             backend_server_port, healthy_threshold=3,
@@ -394,13 +382,13 @@ class SlbConnection(connection.Connection):
                 and the Bandwidth value must not be set to - 1.
                 For paybytraffic instances, this value can be set
                 to - 1, meaning there is no restriction on
-                bandwidth peak speed.The
+                bandwidth peak speed.
+            sticky_session (str): on or off
             healthy_threshold (int): Number of successful healthchecks before
                 considering the listener healthy. Default 3.
             unhealthy_threshold (int): Number of failed healthchecks before
                 considering the listener unhealthy. Default 3.
             health_check (str): 'on' and 'off' (default)
-            sticky_session (bool): use slb sticky sessions. default false.
         HTTPListener arguments:
             scheduler (str): wrr or wlc. Round Robin (default) or
                 Least Connections.
@@ -456,7 +444,6 @@ class SlbConnection(connection.Connection):
 
         self.get(params)
 
-
     def update_tcp_listener(self, load_balancer_id, listener_port,
                             healthy_threshold=None, unhealthy_threshold=None,
                             scheduler=None, health_check=None,
@@ -505,7 +492,6 @@ class SlbConnection(connection.Connection):
 
         self.get(params)
 
-
     def update_http_listener(self, load_balancer_id, listener_port,
                              healthy_threshold=None, unhealthy_threshold=None,
                              scheduler=None, health_check=None,
@@ -513,7 +499,7 @@ class SlbConnection(connection.Connection):
                              x_forwarded_for=None, sticky_session=None,
                              sticky_session_type=None, cookie_timeout=None,
                              cookie=None, domain=None, uri=None):
-        """Update an existing TCP SLB Listener
+        """Update an existing HTTP SLB Listener
 
         Args:
 
@@ -581,6 +567,35 @@ class SlbConnection(connection.Connection):
 
         self.get(params)
 
+    def start_load_balancer_listener(self, load_balancer_id, listener_port):
+        """Start a listener
+
+        Args:
+            load_balancer_id (str): Aliyun SLB LoadBalancerId
+            listener_port (int): The listener port to activate
+        """
+        params = {
+            'Action': 'StartLoadBalancerListener',
+            'LoadBalancerId': str(load_balancer_id),
+            'ListenerPort': int(listener_port)
+        }
+
+        self.get(params)
+
+    def stop_load_balancer_listener(self, load_balancer_id, listener_port):
+        """Stop a listener
+
+        Args:
+            load_balancer_id (str): Aliyun SLB LoadBalancerId
+            listener_port (int): The listener port to activate
+        """
+        params = {
+            'Action': 'StopLoadBalancerListener',
+            'LoadBalancerId': str(load_balancer_id),
+            'ListenerPort': int(listener_port)
+        }
+
+        self.get(params)
 
     def get_backend_servers(self, load_balancer_id, listener_port=None):
         """Get backend servers for a given load balancer and its listener port.
@@ -615,7 +630,6 @@ class SlbConnection(connection.Connection):
 
         return listeners
 
-
     def get_backend_server_ids(self, load_balancer_id, listener_port=None):
         backends = []
         statuses = self.get_backend_servers(load_balancer_id, listener_port)
@@ -623,7 +637,6 @@ class SlbConnection(connection.Connection):
             backends.extend([bs.server_id for bs in status.backend_servers])
 
         return list(set(backends))
-
 
     def remove_backend_servers(self, load_balancer_id, backend_servers):
         """Remove backend servers from a load balancer
@@ -648,7 +661,6 @@ class SlbConnection(connection.Connection):
 
         return self.get(params)
 
-
     def remove_backend_server_ids(self, load_balancer_id, backend_server_ids):
         """Helper wrapper to remove backend server IDs specified from the SLB
            specified.
@@ -659,7 +671,6 @@ class SlbConnection(connection.Connection):
         """
         backends = [BackendServer(bsid, None) for bsid in backend_server_ids]
         return self.remove_backend_servers(load_balancer_id, backends)
-
 
     def add_backend_servers(self, load_balancer_id, backend_servers):
         """Add backend servers to a load balancer
@@ -685,7 +696,6 @@ class SlbConnection(connection.Connection):
 
         return self.get(params)
 
-
     def add_backend_server_ids(self, load_balancer_id, backend_server_ids):
         """Helper wrapper to add backend server IDs specified to the SLB
            specified.
@@ -696,7 +706,6 @@ class SlbConnection(connection.Connection):
         """
         backends = [BackendServer(bsid, None) for bsid in backend_server_ids]
         return self.add_backend_servers(load_balancer_id, backends)
-
 
     def deregister_backend_server_ids(self, server_ids):
         """Helper wrapper to get load balancers with the server id in them and
@@ -717,7 +726,6 @@ class SlbConnection(connection.Connection):
             self.remove_backend_server_ids(lb_id, list(set(bs_ids)))
 
         return lbs.keys()
-
 
     def deregister_backend_servers(self, backend_servers):
         return (
