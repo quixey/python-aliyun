@@ -402,7 +402,7 @@ class TestHTTPListener(SlbConnectionTest):
                        'UnhealthyThreshold': 4,
                        'ConnectTimeout': 5,
                        'Interval': 6,
-                       'ListenerStatus': 'status',
+                       'Bandwidth': 8,
                        'Scheduler': 'schedule',
                        'HealthCheck': 'on',
                        'XForwardedFor': 'on',
@@ -415,8 +415,23 @@ class TestHTTPListener(SlbConnectionTest):
                        })
         self.mox.ReplayAll()
         self.conn.create_http_listener(
-            'id', 1, 2, 3, 4, 'status', 'schedule', True, 5, 6, True, True,
-            'server', 7, 'cookie', 'domain', 'uri')
+            load_balancer_id='id',
+            listener_port=1,
+            backend_server_port=2,
+            bandwidth='8',
+            sticky_session='on',
+            health_check='on',
+            healthy_threshold=3,
+            unhealthy_threshold=4,
+            scheduler='schedule',
+            connect_timeout=5,
+            interval=6,
+            x_forwarded_for=True,
+            sticky_session_type='server',
+            cookie_timeout=7,
+            cookie='cookie',
+            domain='domain',
+            uri='uri')
         self.mox.VerifyAll()
 
     def testUpdateMinimal(self):

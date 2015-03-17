@@ -370,15 +370,15 @@ class SlbConnection(connection.Connection):
 
         self.get(params)
 
-
     def create_http_listener(self, load_balancer_id, listener_port,
-                             backend_server_port, healthy_threshold=3,
-                             unhealthy_threshold=3, listener_status=None,
-                             scheduler=None, health_check=None,
-                             connect_timeout=None, interval=None,
-                             x_forwarded_for=None, sticky_session=None,
-                             sticky_session_type=None, cookie_timeout=None,
-                             cookie=None, domain=None, uri=None):
+                             backend_server_port, bandwidth, sticky_session,
+                             health_check, healthy_threshold=3,
+                             unhealthy_threshold=3,
+                             scheduler=None, connect_timeout=None,
+                             interval=None, x_forwarded_for=None,
+                             sticky_session_type=None,
+                             cookie_timeout=None, cookie=None,
+                             domain=None, uri=None):
         """Create an HTTP SLB Listener
 
         Args:
@@ -386,21 +386,29 @@ class SlbConnection(connection.Connection):
                 SLB.
             listener_port (int): Port for the SLB to listen on
             backend_server_port (int): Port to send traffic to on the back-end
+            bandwidth (int): The peak burst speed of the network.
+                Optional values: - 1|1 - 1000Mbps
+                For the paybybandwidth intances, the peak
+                burst speed of all Listeners should not exceed
+                the Bandwidth value in SLB instance creation,
+                and the Bandwidth value must not be set to - 1.
+                For paybytraffic instances, this value can be set
+                to - 1, meaning there is no restriction on
+                bandwidth peak speed.The
             healthy_threshold (int): Number of successful healthchecks before
                 considering the listener healthy. Default 3.
             unhealthy_threshold (int): Number of failed healthchecks before
                 considering the listener unhealthy. Default 3.
+            health_check (str): 'on' and 'off' (default)
+            sticky_session (bool): use slb sticky sessions. default false.
         HTTPListener arguments:
-            listener_status (str): 'active' (default) or 'stopped'.
             scheduler (str): wrr or wlc. Round Robin (default) or
                 Least Connections.
-            health_check (bool): True for 'on' and False for 'off' (default)
             connect_timeout (int): number of seconds to timeout and fail a
                 health check
             interval (int): number of seconds between health checks
             x_forwarded_for (bool): wether or not to append ips to
                 x-fordwarded-for http header
-            sticky_session (bool): use slb sticky sessions. default false.
             sticky_session_type (str):
                 'insert' to have the SLB add a cookie to requests
                 'server' to have the SLB look for a server-injected cookie
@@ -418,26 +426,23 @@ class SlbConnection(connection.Connection):
                   'LoadBalancerId': load_balancer_id,
                   'ListenerPort': int(listener_port),
                   'BackendServerPort': int(backend_server_port),
+                  'Bandwidth': int(bandwidth),
+                  'StickySession': sticky_session,
+                  'HealthCheck': health_check,
                   }
-
+# derp
         if healthy_threshold is not None:
             params['HealthyThreshold'] = healthy_threshold
         if unhealthy_threshold is not None:
             params['UnhealthyThreshold'] = unhealthy_threshold
-        if listener_status:
-            params['ListenerStatus'] = listener_status
         if scheduler:
             params['Scheduler'] = scheduler
-        if health_check is not None:
-            params['HealthCheck'] = 'on' if health_check else 'off'
         if connect_timeout is not None:
             params['ConnectTimeout'] = connect_timeout
         if interval is not None:
             params['Interval'] = interval
         if x_forwarded_for is not None:
             params['XForwardedFor'] = 'on' if x_forwarded_for else 'off'
-        if sticky_session is not None:
-            params['StickySession'] = 'on' if sticky_session else 'off'
         if sticky_session_type is not None:
             params['StickySessionapiType'] = sticky_session_type
         if cookie_timeout is not None:
