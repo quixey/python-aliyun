@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -138,7 +138,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'BackendServers': {
                 'BackendServer': []
             },
-            'IsPublicAddress': 'true',
+            'AddressType': 'i',
             'ListenerPorts': {
                 'ListenerPort': [1]
             },
@@ -147,7 +147,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'LoadBalancerStatus': 's',
             'RegionId': 'r'
         }
-        expect = slb.LoadBalancer('id', 'r', 'n', 's', 'a', True, [1])
+        expect = slb.LoadBalancer('id', 'r', 'n', 's', 'a', 'i', [1])
         self.conn.get({'Action': 'DescribeLoadBalancerAttribute',
                        'LoadBalancerId': 'id'}).AndReturn(get_response)
         self.mox.ReplayAll()
@@ -162,7 +162,7 @@ class TestLoadBalancer(SlbConnectionTest):
                     {'ServerId': 'sid1', 'Weight': 1},
                     {'ServerId': 'sid2', 'Weight': 1},
                 ]},
-            'IsPublicAddress': 'true',
+            'AddressType': 'i',
             'ListenerPorts': {
                 'ListenerPort': [1]
             },
@@ -181,7 +181,7 @@ class TestLoadBalancer(SlbConnectionTest):
             'n',
             's',
             'a',
-            True,
+            'i',
             [1],
             expected_backends)
         self.conn.get({'Action': 'DescribeLoadBalancerAttribute',
@@ -192,23 +192,60 @@ class TestLoadBalancer(SlbConnectionTest):
 
     def testCreateMinimal(self):
         get_response = {'Address': 'address',
-                        'LoadBalancerId':'id',
-                        'LoadBalancerName':'name'}
+                        'LoadBalancerId': 'id',
+                        'LoadBalancerName': 'name'}
         self.conn.get({'Action': 'CreateLoadBalancer',
-                       'IsPublicAddress':'true'}).AndReturn(get_response)
+                       'RegionId': 'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
-        self.assertEqual('id', self.conn.create_load_balancer())
+        self.assertEqual('id', self.conn.create_load_balancer('r'))
         self.mox.VerifyAll()
 
     def testCreateFull(self):
-        get_response = {'Address': 'address',
-                        'LoadBalancerId':'id',
-                        'LoadBalancerName':'name'}
+        get_response = {'Address': 'a',
+                        'LoadBalancerId': 'id',
+                        'AddressType': 'i',
+                        'InternetChargeType': 'pbbw',
+                        'Bandwidth': 1000,
+                        'LoadBalancerName': 'n'}
         self.conn.get({'Action': 'CreateLoadBalancer',
-                       'LoadBalancerName': 'name',
-                       'IsPublicAddress':'false'}).AndReturn(get_response)
+                       'LoadBalancerName': 'n',
+                       'AddressType': 'i',
+                       'InternetChargeType': 'pbbw',
+                       'Bandwidth': 1000,
+                       'RegionId': 'r'}).AndReturn(get_response)
         self.mox.ReplayAll()
-        self.assertEqual('id', self.conn.create_load_balancer('name',False))
+        lb = self.conn.create_load_balancer(region_id='r',
+                                            load_balancer_name='n',
+                                            address_type='i',
+                                            internet_charge_type='pbbw',
+                                            bandwidth=1000)
+        self.assertEqual('id', lb)
+        self.mox.VerifyAll()
+
+    def testDeleteLoadBalancer(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'DeleteLoadBalancer',
+                       'LoadBalancerId': 'i'}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.delete_load_balancer('i')
+        self.mox.VerifyAll()
+
+    def testStartLoadBalancerListener(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'StartLoadBalancerListener',
+                       'LoadBalancerId': 'i',
+                       'ListenerPort': 1}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.start_load_balancer_listener('i', 1)
+        self.mox.VerifyAll()
+
+    def testStopLoadBalancerListener(self):
+        get_response = {'RequestId': 'r'}
+        self.conn.get({'Action': 'StopLoadBalancerListener',
+                       'LoadBalancerId': 'i',
+                       'ListenerPort': 1}).AndReturn(get_response)
+        self.mox.ReplayAll()
+        self.conn.stop_load_balancer_listener('i', 1)
         self.mox.VerifyAll()
 
     def testSetStatus(self):
@@ -383,7 +420,7 @@ class TestHTTPListener(SlbConnectionTest):
                        'UnhealthyThreshold': 4,
                        'ConnectTimeout': 5,
                        'Interval': 6,
-                       'ListenerStatus': 'status',
+                       'Bandwidth': 8,
                        'Scheduler': 'schedule',
                        'HealthCheck': 'on',
                        'XForwardedFor': 'on',
@@ -396,8 +433,23 @@ class TestHTTPListener(SlbConnectionTest):
                        })
         self.mox.ReplayAll()
         self.conn.create_http_listener(
-            'id', 1, 2, 3, 4, 'status', 'schedule', True, 5, 6, True, True,
-            'server', 7, 'cookie', 'domain', 'uri')
+            load_balancer_id='id',
+            listener_port=1,
+            backend_server_port=2,
+            bandwidth='8',
+            sticky_session='on',
+            health_check='on',
+            healthy_threshold=3,
+            unhealthy_threshold=4,
+            scheduler='schedule',
+            connect_timeout=5,
+            interval=6,
+            x_forwarded_for=True,
+            sticky_session_type='server',
+            cookie_timeout=7,
+            cookie='cookie',
+            domain='domain',
+            uri='uri')
         self.mox.VerifyAll()
 
     def testUpdateMinimal(self):

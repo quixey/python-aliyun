@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 # Copyright 2014, Quixey Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
 # the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -15,15 +15,12 @@
 
 import collections
 from aliyun import connection
-import json
-import logging
 from aliyun.slb.model import (
     BackendServer,
     BackendServerStatus,
     HTTPListener,
     LoadBalancer,
     LoadBalancerStatus,
-    Listener,
     ListenerStatus,
     Region,
     TCPListener
@@ -78,7 +75,6 @@ class SlbConnection(connection.Connection):
         Return:
             List of LoadBalancerStatus.
         """
-
         lb_status = []
         params = {'Action': 'DescribeLoadBalancers'}
 
@@ -99,6 +95,19 @@ class SlbConnection(connection.Connection):
         return (
             [x.load_balancer_id for x in self.get_all_load_balancer_status()]
         )
+
+    def delete_load_balancer(self, load_balancer_id):
+        """Delete a LoadBalancer by ID
+
+        Args:
+            load_balancer_id (str): Aliyun SLB LoadBalancerId to delete.
+        """
+        params = {
+            'Action': 'DeleteLoadBalancer',
+            'LoadBalancerId': load_balancer_id
+        }
+
+        return self.get(params)
 
     def get_load_balancer(self, load_balancer_id):
         """Get a LoadBalancer by ID.
@@ -123,28 +132,48 @@ class SlbConnection(connection.Connection):
                             resp['LoadBalancerName'],
                             resp['LoadBalancerStatus'],
                             resp['Address'],
-                            resp['IsPublicAddress'] == 'true',
+                            resp['AddressType'],
                             [port for port in resp['ListenerPorts']
                                 ['ListenerPort']],
                             backend_servers)
 
-    def create_load_balancer(self, load_balancer_name=None, is_public=True):
+    def create_load_balancer(self, region_id,
+                             address_type=None,
+                             internet_charge_type=None,
+                             bandwidth=None,
+                             load_balancer_name=None):
         """Create a load balancer. This does not configure listeners nor
         backend servers.
 
         Args:
-            load_balancer_name (str): The name of the SLB. Optional.
-            is_public (bool): Make the SLB listen on the public network (True,
-                              default) or the private network (False)
+            region_id (str): An id from get_all_region_ids()
+            addres_type (str): IP the SLB on the public network ('internet',
+                               default) or the private network ('intranet')
+            internet_charge_type (str): 'paybytraffic' (default) vs
+                                        'paybybandwidth'
+            bandwidth (int): peak burst speed of 'paybybandwidth' type slbs.
+                             Listener must be set first before this will take
+                             effect. default: 1 (unit Mbps)
+            load_balancer_name (str): Name of the SLB. 80 char max. Optional.
         Returns:
             load_balancer_id of the created LB. Address and Name are not given.
         """
         params = {
-                'Action': 'CreateLoadBalancer',
-                'IsPublicAddress': str(is_public).lower()
-                }
-        if load_balancer_name != None:
+            'Action': 'CreateLoadBalancer',
+            'RegionId': region_id
+            }
+
+        if load_balancer_name is not None:
             params['LoadBalancerName'] = load_balancer_name
+
+        if address_type is not None:
+            params['AddressType'] = address_type.lower()
+
+        if internet_charge_type is not None:
+            params['InternetChargeType'] = internet_charge_type.lower()
+
+        if bandwidth is not None:
+            params['Bandwidth'] = bandwidth
 
         resp = self.get(params)
         self.logging.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s".format(resp))
@@ -298,7 +327,6 @@ class SlbConnection(connection.Connection):
             persistence_timeout (int): number of seconds to hold TCP
                 connection open
         """
-
         params = {'Action': 'CreateLoadBalancerTCPListener',
                   'LoadBalancerId': load_balancer_id,
                   'ListenerPort': int(listener_port),
@@ -327,13 +355,14 @@ class SlbConnection(connection.Connection):
         self.get(params)
 
     def create_http_listener(self, load_balancer_id, listener_port,
-                             backend_server_port, healthy_threshold=3,
-                             unhealthy_threshold=3, listener_status=None,
-                             scheduler=None, health_check=None,
-                             connect_timeout=None, interval=None,
-                             x_forwarded_for=None, sticky_session=None,
-                             sticky_session_type=None, cookie_timeout=None,
-                             cookie=None, domain=None, uri=None):
+                             backend_server_port, bandwidth, sticky_session,
+                             health_check, healthy_threshold=3,
+                             unhealthy_threshold=3,
+                             scheduler=None, connect_timeout=None,
+                             interval=None, x_forwarded_for=None,
+                             sticky_session_type=None,
+                             cookie_timeout=None, cookie=None,
+                             domain=None, uri=None):
         """Create an HTTP SLB Listener
 
         Args:
@@ -341,21 +370,29 @@ class SlbConnection(connection.Connection):
                 SLB.
             listener_port (int): Port for the SLB to listen on
             backend_server_port (int): Port to send traffic to on the back-end
+            bandwidth (int): The peak burst speed of the network.
+                Optional values: - 1|1 - 1000Mbps
+                For the paybybandwidth intances, the peak
+                burst speed of all Listeners should not exceed
+                the Bandwidth value in SLB instance creation,
+                and the Bandwidth value must not be set to - 1.
+                For paybytraffic instances, this value can be set
+                to - 1, meaning there is no restriction on
+                bandwidth peak speed.
+            sticky_session (str): on or off
             healthy_threshold (int): Number of successful healthchecks before
                 considering the listener healthy. Default 3.
             unhealthy_threshold (int): Number of failed healthchecks before
                 considering the listener unhealthy. Default 3.
+            health_check (str): 'on' and 'off' (default)
         HTTPListener arguments:
-            listener_status (str): 'active' (default) or 'stopped'.
             scheduler (str): wrr or wlc. Round Robin (default) or
                 Least Connections.
-            health_check (bool): True for 'on' and False for 'off' (default)
             connect_timeout (int): number of seconds to timeout and fail a
                 health check
             interval (int): number of seconds between health checks
             x_forwarded_for (bool): wether or not to append ips to
                 x-fordwarded-for http header
-            sticky_session (bool): use slb sticky sessions. default false.
             sticky_session_type (str):
                 'insert' to have the SLB add a cookie to requests
                 'server' to have the SLB look for a server-injected cookie
@@ -369,31 +406,26 @@ class SlbConnection(connection.Connection):
             domain (str): the Host header to use for the health check
             uri (str): URL path for healthcheck. E.g. /health
         """
-
         params = {'Action': 'CreateLoadBalancerHTTPListener',
                   'LoadBalancerId': load_balancer_id,
                   'ListenerPort': int(listener_port),
                   'BackendServerPort': int(backend_server_port),
+                  'Bandwidth': int(bandwidth),
+                  'StickySession': sticky_session,
+                  'HealthCheck': health_check,
                   }
-
         if healthy_threshold is not None:
             params['HealthyThreshold'] = healthy_threshold
         if unhealthy_threshold is not None:
             params['UnhealthyThreshold'] = unhealthy_threshold
-        if listener_status:
-            params['ListenerStatus'] = listener_status
         if scheduler:
             params['Scheduler'] = scheduler
-        if health_check is not None:
-            params['HealthCheck'] = 'on' if health_check else 'off'
         if connect_timeout is not None:
             params['ConnectTimeout'] = connect_timeout
         if interval is not None:
             params['Interval'] = interval
         if x_forwarded_for is not None:
             params['XForwardedFor'] = 'on' if x_forwarded_for else 'off'
-        if sticky_session is not None:
-            params['StickySession'] = 'on' if sticky_session else 'off'
         if sticky_session_type is not None:
             params['StickySessionapiType'] = sticky_session_type
         if cookie_timeout is not None:
@@ -433,7 +465,7 @@ class SlbConnection(connection.Connection):
             persistence_timeout (int): number of seconds to hold TCP
                 connection open
         """
-        params = { 'Action': 'SetLoadBalancerTCPListenerAttribute',
+        params = {'Action': 'SetLoadBalancerTCPListenerAttribute',
                 'LoadBalancerId': load_balancer_id,
                 'ListenerPort': listener_port}
         if healthy_threshold != None:
@@ -462,7 +494,7 @@ class SlbConnection(connection.Connection):
                              x_forwarded_for=None, sticky_session=None,
                              sticky_session_type=None, cookie_timeout=None,
                              cookie=None, domain=None, uri=None):
-        """Update an existing TCP SLB Listener
+        """Update an existing HTTP SLB Listener
 
         Args:
 
@@ -530,6 +562,35 @@ class SlbConnection(connection.Connection):
 
         self.get(params)
 
+    def start_load_balancer_listener(self, load_balancer_id, listener_port):
+        """Start a listener
+
+        Args:
+            load_balancer_id (str): Aliyun SLB LoadBalancerId
+            listener_port (int): The listener port to activate
+        """
+        params = {
+            'Action': 'StartLoadBalancerListener',
+            'LoadBalancerId': str(load_balancer_id),
+            'ListenerPort': int(listener_port)
+        }
+
+        self.get(params)
+
+    def stop_load_balancer_listener(self, load_balancer_id, listener_port):
+        """Stop a listener
+
+        Args:
+            load_balancer_id (str): Aliyun SLB LoadBalancerId
+            listener_port (int): The listener port to activate
+        """
+        params = {
+            'Action': 'StopLoadBalancerListener',
+            'LoadBalancerId': str(load_balancer_id),
+            'ListenerPort': int(listener_port)
+        }
+
+        self.get(params)
 
     def get_backend_servers(self, load_balancer_id, listener_port=None):
         """Get backend servers for a given load balancer and its listener port.
@@ -620,7 +681,7 @@ class SlbConnection(connection.Connection):
 
         backends = []
         for bs in backend_servers:
-            if bs.weight != None:
+            if bs.weight is not None:
                 backends.append(
                     {'ServerId': bs.instance_id, 'Weight': bs.weight})
             else:
@@ -629,7 +690,7 @@ class SlbConnection(connection.Connection):
         params['BackendServers'] = backends
 
         return self.get(params)
-        
+
     def add_backend_server_ids(self, load_balancer_id, backend_server_ids):
         """Helper wrapper to add backend server IDs specified to the SLB
            specified.
@@ -640,7 +701,7 @@ class SlbConnection(connection.Connection):
         """
         backends = [BackendServer(bsid, None) for bsid in backend_server_ids]
         return self.add_backend_servers(load_balancer_id, backends)
-    
+
     def deregister_backend_server_ids(self, server_ids):
         """Helper wrapper to get load balancers with the server id in them and
         remove the server from each load balancer.
@@ -666,4 +727,3 @@ class SlbConnection(connection.Connection):
             self.deregister_backend_server_ids(
                 [bs.instance_id for bs in backend_servers])
         )
-
