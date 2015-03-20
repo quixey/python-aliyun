@@ -15,15 +15,12 @@
 
 import collections
 from aliyun import connection
-import json
-import logging
 from aliyun.slb.model import (
     BackendServer,
     BackendServerStatus,
     HTTPListener,
     LoadBalancer,
     LoadBalancerStatus,
-    Listener,
     ListenerStatus,
     Region,
     TCPListener
@@ -269,7 +266,6 @@ class SlbConnection(connection.Connection):
                            connect_port=int(resp['ConnectPort']) or None,
                            persistence_timeout=int(resp['PersistenceTimeout']))
 
-
     def get_http_listener(self, load_balancer_id, listener_port):
         """Get the HTTP Listener from an SLB ID and port
 
@@ -418,7 +414,6 @@ class SlbConnection(connection.Connection):
                   'StickySession': sticky_session,
                   'HealthCheck': health_check,
                   }
-# derp
         if healthy_threshold is not None:
             params['HealthyThreshold'] = healthy_threshold
         if unhealthy_threshold is not None:
@@ -686,7 +681,7 @@ class SlbConnection(connection.Connection):
 
         backends = []
         for bs in backend_servers:
-            if bs.weight != None:
+            if bs.weight is not None:
                 backends.append(
                     {'ServerId': bs.instance_id, 'Weight': bs.weight})
             else:
