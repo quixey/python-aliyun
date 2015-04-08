@@ -24,7 +24,7 @@ all: clean test
 
 clean:
 	rm -rf python-aliyun*.deb build *.egg-info *.egg
-	find . -name '*.pyc' -exec rm {} \;
+	find . -name '*.py[co]' -exec rm {} \;
 	mkdir build
 
 virtualenv:
