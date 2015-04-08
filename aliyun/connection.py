@@ -38,6 +38,8 @@ class Error(Exception):
     """Base exception class for this module."""
 
 
+Credentials = namedtuple('Credentials', 'access_key_id secret_access_key')
+
 def find_credentials():
     """Tries to get the aliyun credentials from the following in priority:
 
@@ -60,10 +62,8 @@ def find_credentials():
         access_key_id=ACCESS_KEY
         secret_access_key=SECRET_KEY
     """
-    creds = namedtuple('Credentials', 'access_key_id secret_access_key')
-
-    creds.access_key_id = os.getenv('ALI_ACCESS_KEY_ID', None)
-    creds.secret_access_key = os.getenv('ALI_SECRET_ACCESS_KEY', None)
+    creds = Credentials(access_key_id=os.getenv('ALI_ACCESS_KEY_ID', None),
+                        secret_access_key=os.getenv('ALI_SECRET_ACCESS_KEY', None))
     if creds.access_key_id is not None and creds.secret_access_key is not None:
         return creds
 
