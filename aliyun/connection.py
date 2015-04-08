@@ -123,35 +123,33 @@ class Connection(object):
             self.access_key_id = access_key_id
             self.secret_access_key = secret_access_key
 
-        logger.debug("%s connection to %s created", (service, region_id))
+        logger.debug("%s connection to %s created", service, region_id)
 
     def _percent_encode(self, request):
         encoding = sys.stdin.encoding or DEFAULT_ENCODING
 
+        try:
+            s = unicode(request, encoding)
+        except TypeError:
+            # Most likely request was already unicode
+            s = request
+
         res = urllib.quote(
-            request.decode(encoding).encode('utf8'),
-            '')
-        res = res.replace('+', '%20')
-        res = res.replace('*', '%2A')
-        res = res.replace('%7E', '~')
+            s.encode('utf8'),
+            safe='~')
         return res
 
     def _compute_signature(self, parameters):
-        sortedParameters = sorted(
-            parameters.items(),
-            key=lambda parameters: parameters[0])
+        sorted_params = sorted(parameters.items())
 
-        canonicalizedQueryString = ''
-        for (k, v) in sortedParameters:
-            canonicalizedQueryString += '&' + \
-                self._percent_encode(k) + '=' + \
-                self._percent_encode(unicode(v))
+        canonicalized_query_string = '&'.join(['%s=%s' % (self._percent_encode(k),
+                                                          self._percent_encode(v))
+                                               for k, v in sorted_params])
 
-        stringToSign = 'GET&%2F&' + \
-            self._percent_encode(canonicalizedQueryString[1:])
+        string_to_sign = 'GET&%2F&' + self._percent_encode(canonicalized_query_string)
 
-        h = hmac.new(self.secret_access_key + "&", stringToSign, sha1)
-        signature = base64.encodestring(h.digest()).strip()
+        h = hmac.new(self.secret_access_key + "&", string_to_sign, sha1)
+        signature = base64.b64encode(h.digest())
         return signature
 
     def _build_request(self, params):

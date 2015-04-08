@@ -32,7 +32,7 @@ virtualenv:
 	$(VENV_ACTIVATE) && python setup.py --quiet develop
 	rm -rf python-aliyun.egg-info
 
-test:
+test: clean
 	mkdir -p build
 	python ./setup.py nosetests
 	mv *.egg-info build/

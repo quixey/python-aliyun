@@ -13,11 +13,9 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-import ConfigParser
 import os
 import mox
 import unittest
-import urllib2
 
 from collections import namedtuple
 
@@ -73,3 +71,30 @@ class CredentialsTest(unittest.TestCase):
     #    self.assertEqual(given_creds.secret_access_key, 'secret')
 
     #    self.mox.VerifyAll()
+
+    def testPercentEncode(self):
+        c = aliyun.connection.Connection('some_region_id',
+                                         'ecs',
+                                         'some_access_key_id',
+                                         'some_secret_access_key')
+        encoded = c._percent_encode(u'*+ ~')
+        self.assertEqual(str, type(encoded))
+        self.assertEqual('%2A%2B%20~', encoded)
+
+        encoded = c._percent_encode('\xc3\xa4')
+        self.assertEqual(str, type(encoded))
+        self.assertEqual('%C3%A4', encoded)
+
+        encoded = c._percent_encode('~%7E')
+        self.assertEqual(str, type(encoded))
+        self.assertEqual('~%257E', encoded)
+
+    def testSignature(self):
+        c = aliyun.connection.Connection('some_region_id',
+                                         'ecs',
+                                         'some_access_key_id',
+                                         'some_secret_access_key')
+        sig = c._compute_signature({'abc': 'def',
+                                    '\xc3\xa4': 'str type',
+                                    '*+ ~': '*+ ~'})
+        self.assertEqual('Esu7vZK6JBsujsaQXT1AHKR5Ols=', sig)
