@@ -65,12 +65,7 @@ single quotes.
 import aliyun.connection
 import argparse
 import json
-import os
 import logging
-import sys
-
-from ConfigParser import ConfigParser
-from collections import namedtuple
 
 
 if __name__ == '__main__':
