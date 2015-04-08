@@ -142,6 +142,9 @@ class Connection(object):
     def _compute_signature(self, parameters):
         sorted_params = sorted(parameters.items())
 
+        # This is pretty convoluted. urllib.urlencode does almost the same
+        # and is faster, so if we switched signature version we could do
+        # that instead
         canonicalized_query_string = '&'.join(['%s=%s' % (self._percent_encode(k),
                                                           self._percent_encode(v))
                                                for k, v in sorted_params])
@@ -162,7 +165,7 @@ class Connection(object):
             'AccessKeyId': self.access_key_id,
             'SignatureVersion': '1.0',
             'SignatureMethod': 'HMAC-SHA1',
-            'SignatureNonce': str(uuid.uuid1()),
+            'SignatureNonce': str(uuid.uuid4()),
             'TimeStamp': timestamp,
             'RegionId': self.region_id
         }
