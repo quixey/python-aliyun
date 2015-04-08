@@ -13,6 +13,12 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import json
+import time
+import logging
+
+import dateutil.parser
+
 from aliyun.connection import Connection
 from aliyun.ecs.model import (
     AutoSnapshotPolicy,
@@ -31,13 +37,10 @@ from aliyun.ecs.model import (
     Snapshot,
     Zone
 )
-import dateutil.parser
-import json
-import time
-
 
 BLOCK_TILL_RUNNING_SECS = 600
 
+logger = logging.getLogger(__name__)
 
 class Error(Exception):
 
@@ -686,7 +689,7 @@ class EcsConnection(Connection):
             raise Error('Instance can have max 5 security groups')
 
         # Create the instance.
-        self.logging.debug('creating instance')
+        logger.debug('creating instance')
         instance_id = self.create_instance(
             image_id, instance_type, initial_security_group_id,
             instance_name=instance_name,
@@ -699,7 +702,7 @@ class EcsConnection(Connection):
 
         # Modify the security groups.
         if additional_security_group_ids:
-            self.logging.debug('Adding additional security groups')
+            logger.debug('Adding additional security groups')
             time.sleep(10)
             for sg in additional_security_group_ids:
                 self.join_security_group(instance_id, sg)
@@ -709,7 +712,7 @@ class EcsConnection(Connection):
             self.allocate_public_ip(instance_id)
 
         # Start the instance.
-        self.logging.debug('Starting the instance: %s' % instance_id)
+        logger.debug('Starting the instance: %s', instance_id)
         time.sleep(10)
         self.start_instance(instance_id)
 
@@ -718,7 +721,7 @@ class EcsConnection(Connection):
             running = False
             total_time = 0
             while total_time <= BLOCK_TILL_RUNNING_SECS:
-                self.logging.debug('Waiting 30 secs for instance to be running')
+                logger.debug('Waiting 30 secs for instance to be running')
                 time.sleep(30)
                 total_time += 30
                 if self.get_instance(instance_id).status == 'Running':
@@ -1009,7 +1012,7 @@ class EcsConnection(Connection):
             total_time = 0
             created = False
             while total_time <= timeout_secs:
-                self.logging.debug('Waiting 30 secs for snapshot')
+                logger.debug('Waiting 30 secs for snapshot')
                 time.sleep(30)
                 total_time += 30
                 snapshot = self.describe_snapshot(snapshot_id)
@@ -1119,21 +1122,21 @@ class EcsConnection(Connection):
                 creation process times out.
         """
         # Get the system disk id.
-        self.logging.debug('Getting system disk for %s' % instance_id)
+        logger.debug('Getting system disk for %s', instance_id)
         disks = self.describe_instance_disks(instance_id)
         system_disk = next((d for d in disks if d.disk_type == 'system'), None)
         if not system_disk:
             raise Error('System disk for %s not found' % instance_id)
 
         # Create the snapshot.
-        self.logging.debug(
+        logger.debug(
             'Creating snapshot for system disk %s' %
             system_disk.disk_id)
         snapshot_id = self.create_snapshot(instance_id, system_disk.disk_id,
                                            timeout_secs=timeout_secs)
 
         # Create the image.
-        self.logging.debug('Creating image from snapshot %s' % snapshot_id)
+        logger.debug('Creating image from snapshot %s', snapshot_id)
         image_id = self.create_image(snapshot_id,
                                      image_version=image_version,
                                      description=description, os_name=os_name)

@@ -14,6 +14,8 @@
 # the License.
 
 import collections
+import logging
+
 from aliyun import connection
 from aliyun.slb.model import (
     BackendServer,
@@ -26,6 +28,7 @@ from aliyun.slb.model import (
     TCPListener
 )
 
+logger = logging.getLogger(__name__)
 
 class Error(Exception):
 
@@ -176,7 +179,7 @@ class SlbConnection(connection.Connection):
             params['Bandwidth'] = bandwidth
 
         resp = self.get(params)
-        self.logging.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s".format(resp))
+        logger.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s", resp)
         return resp['LoadBalancerId']
 
     def set_load_balancer_status(self, load_balancer_id, status):

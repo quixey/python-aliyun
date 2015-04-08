@@ -15,17 +15,14 @@
 
 import base64
 import hmac
-import hashlib
 import json
 import logging
 import os
 import time
 import urllib
 import urllib2
-import urlparse
 import uuid
 import sys
-
 from collections import namedtuple
 from ConfigParser import ConfigParser
 from hashlib import sha1
@@ -33,6 +30,7 @@ from hashlib import sha1
 
 PAGE_SIZE = 50
 
+logger = logging.getLogger(__name__)
 
 class Error(Exception):
 
@@ -124,8 +122,7 @@ class Connection(object):
             self.access_key_id = access_key_id
             self.secret_access_key = secret_access_key
 
-        self.logging= logging.getLogger()
-        self.logging.debug("%s connection to %s created" % (service, region_id))
+        logger.debug("%s connection to %s created", (service, region_id))
 
     def _percent_encode(self, request):
         encoding = sys.stdin.encoding
@@ -183,16 +180,16 @@ class Connection(object):
         return request
 
     def _get(self, request):
-        self.logging.debug('URL requested: %s' % request.get_full_url())
+        logger.debug('URL requested: %s', request.get_full_url())
         try:
             conn = urllib2.urlopen(request)
             response = conn.read()
             encoding = conn.headers['content-type'].split('charset=')[-1]
             unicode_response = unicode(response, encoding)
-            self.logging.debug('URL response: %s' % unicode_response)
+            logger.debug('URL response: %s', unicode_response)
             return json.loads(unicode_response)
         except urllib2.HTTPError as e:
-            self.logging.error('Error GETing URL: %s' % request.get_full_url())
+            logger.error('Error GETing URL: %s', request.get_full_url())
             raise Error(e.read())
 
     def _get_remaining_pages(self, total_count):
