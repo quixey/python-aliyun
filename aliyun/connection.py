@@ -29,6 +29,7 @@ from hashlib import sha1
 
 
 PAGE_SIZE = 50
+DEFAULT_ENCODING = sys.getdefaultencoding() or 'utf8'
 
 logger = logging.getLogger(__name__)
 
@@ -125,9 +126,7 @@ class Connection(object):
         logger.debug("%s connection to %s created", (service, region_id))
 
     def _percent_encode(self, request):
-        encoding = sys.stdin.encoding
-        if encoding is None:
-            encoding = sys.getdefaultencoding()
+        encoding = sys.stdin.encoding or DEFAULT_ENCODING
 
         res = urllib.quote(
             request.decode(encoding).encode('utf8'),
