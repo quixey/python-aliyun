@@ -275,7 +275,7 @@ class Disk(object):
     def __init__(self, disk_id, disk_type, disk_category, disk_size,
         attached_time=None, creation_time=None, delete_auto_snapshot=None,
         delete_with_instance=None, description=None, detached_time=None,
-        device=None, image_id=None, instance_id=None, operation_locks=[],
+        device=None, image_id=None, instance_id=None, operation_locks=None,
         portable=None, product_code=None, snapshot_id=None, status=None,
         zone_id=None):
 
@@ -310,6 +310,8 @@ class Disk(object):
             zone_id (str): The Availability Zone of the Disk.
 
         """
+        if operation_locks is None:
+            operation_locks = []
         self.disk_id = disk_id
         self.disk_type = disk_type
         self.disk_category = disk_category
@@ -533,8 +535,8 @@ class SecurityGroup(object):
 
 class Zone(object):
 
-    def __init__(self, zone_id, local_name, available_resource_creation=[],
-            available_disk_types=[]):
+    def __init__(self, zone_id, local_name, available_resource_creation=None,
+            available_disk_types=None):
         """Constructor.
 
         Args:
@@ -543,6 +545,10 @@ class Zone(object):
             available_resource_creation (list of 'Instance' and/or 'Disk'): The resource types which can be created in this zone.
             available_disk_types (list of 'cloud' and/or 'ephemeral'): The types of disks which can be created in the zone.
         """
+        if available_resource_creation is None:
+            available_resource_creation = []
+        if available_disk_types is None:
+            available_disk_types = []
         self.zone_id = zone_id
         self.local_name = local_name
         self.available_resource_creation = available_resource_creation

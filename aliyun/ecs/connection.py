@@ -498,7 +498,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            data_disks=[], description=None, zone_id=None):
+            data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
         Args:
@@ -556,6 +556,8 @@ class EcsConnection(Connection):
                 {'category': 'cloud', 'size': 2000}
             ]
         """
+        if data_disks is None:
+            data_disks = []
         params = {
             'Action': 'CreateInstance',
             'ImageId': image_id,
@@ -576,7 +578,7 @@ class EcsConnection(Connection):
             params['SystemDisk.Category'] = system_disk_type
         if internet_charge_type:
             params['InternetChargeType'] = internet_charge_type
-        if data_disks != []:
+        if data_disks:
             for i, disk in enumerate(data_disks):
                 if isinstance(disk, dict):
                     ddisk = DiskMapping(**disk)
@@ -612,7 +614,7 @@ class EcsConnection(Connection):
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
             assign_public_ip=True, block_till_ready=True,
-            data_disks=[], description=None, zone_id=None):
+            data_disks=None, description=None, zone_id=None):
         """Create and start an instance.
 
         This is a convenience method that does more than just create_instance.
@@ -684,6 +686,8 @@ class EcsConnection(Connection):
                 {'category': 'cloud', 'size': 1024}
             ]
         """
+        if data_disks is None:
+            data_disks = []
         # Cannot have more then 5 security groups total.
         if len(additional_security_group_ids) > 4:
             raise Error('Instance can have max 5 security groups')
@@ -1027,7 +1031,7 @@ class EcsConnection(Connection):
 
         return snapshot_id
 
-    def describe_images(self, image_ids=[], owner_alias=[], snapshot_id=None):
+    def describe_images(self, image_ids=None, owner_alias=None, snapshot_id=None):
         """List images in the region matching params.
 
         Args:
@@ -1039,6 +1043,11 @@ class EcsConnection(Connection):
         Returns:
             List of :class`.model.Image` objects.
         """
+        if image_ids is None:
+            image_ids = []
+        if owner_alias is None:
+            owner_alias = []
+
         images = []
 
         params = {'Action': 'DescribeImages'}

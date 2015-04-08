@@ -79,7 +79,9 @@ class LoadBalancer(object):
                  address,
                  address_type,
                  listener_ports,
-                 backend_servers=[]):
+                 backend_servers=None):
+        if backend_servers is None:
+            backend_servers = []
 
         if load_balancer_id is None:
             raise slb.Error(
@@ -116,7 +118,9 @@ class ListenerStatus(object):
         backend_servers (list of BackendServerStatus)
     """
 
-    def __init__(self, listener_port, backend_servers=[]):
+    def __init__(self, listener_port, backend_servers=None):
+        if backend_servers is None:
+            backend_servers = []
         self.listener_port = listener_port
         self.backend_servers = backend_servers
 
