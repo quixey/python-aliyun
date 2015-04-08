@@ -63,7 +63,7 @@ def find_credentials():
 
     creds.access_key_id = os.getenv('ALI_ACCESS_KEY_ID', None)
     creds.secret_access_key = os.getenv('ALI_SECRET_ACCESS_KEY', None)
-    if creds.access_key_id != None and creds.secret_access_key != None:
+    if creds.access_key_id is not None and creds.secret_access_key is not None:
         return creds
 
     cfg_path = os.path.join(os.getenv('HOME', '/root/'), '.aliyun.cfg')
@@ -126,7 +126,7 @@ class Connection(object):
 
     def _percent_encode(self, request):
         encoding = sys.stdin.encoding
-        if encoding == None:
+        if encoding is None:
             encoding = sys.getdefaultencoding()
 
         res = urllib.quote(

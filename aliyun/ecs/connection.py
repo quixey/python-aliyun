@@ -132,7 +132,7 @@ class EcsConnection(Connection):
             'Action': 'DescribeInstanceStatus'
         }
 
-        if zone_id != None:
+        if zone_id is not None:
             params.update({'ZoneId': zone_id})
 
         for resp in self.get(params, paginated=True):
