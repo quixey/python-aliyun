@@ -1,3 +1,4 @@
+*~
 *.py[cod]
 
 # Packages
@@ -6,7 +7,16 @@
 dist
 build
 eggs
+/.eggs
 # Unit test / coverage reports
 .coverage
 .tox
 nosetests.xml
+
+/docs/doctrees
+/docs/html
+
+# Eclipse
+/.project
+/.pydevproject
+/.settings
