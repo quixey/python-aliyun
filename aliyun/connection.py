@@ -62,9 +62,11 @@ def find_credentials():
         access_key_id=ACCESS_KEY
         secret_access_key=SECRET_KEY
     """
-    creds = Credentials(access_key_id=os.getenv('ALI_ACCESS_KEY_ID', None),
-                        secret_access_key=os.getenv('ALI_SECRET_ACCESS_KEY', None))
-    if creds.access_key_id is not None and creds.secret_access_key is not None:
+    access_key_id = os.getenv('ALI_ACCESS_KEY_ID', None)
+    secret_access_key = os.getenv('ALI_SECRET_ACCESS_KEY', None)
+    if access_key_id is not None and secret_access_key is not None:
+        creds = Credentials(access_key_id=access_key_id,
+                            secret_access_key=secret_access_key)
         return creds
 
     cfg_path = os.path.join(os.getenv('HOME', '/root/'), '.aliyun.cfg')
@@ -76,8 +78,8 @@ def find_credentials():
         cp.read('/etc/aliyun.cfg')
 
     if cp.has_section('default') and cp.has_option('default', 'access_key_id'):
-        creds.access_key_id = cp.get('default', 'access_key_id')
-        creds.secret_access_key = cp.get('default', 'secret_access_key')
+        creds = Credentials(access_key_id=cp.get('default', 'access_key_id'),
+                            secret_access_key=cp.get('default', 'secret_access_key'))
         return creds
     else:
         raise Error("Could not find credentials.")
