@@ -81,7 +81,7 @@ class CredentialsTest(unittest.TestCase):
         self.assertEqual(str, type(encoded))
         self.assertEqual('%2A%2B%20~', encoded)
 
-        encoded = c._percent_encode('\xc3\xa4')
+        encoded = c._percent_encode('\xc3\xa4', encoding='utf8')
         self.assertEqual(str, type(encoded))
         self.assertEqual('%C3%A4', encoded)
 
@@ -96,5 +96,6 @@ class CredentialsTest(unittest.TestCase):
                                          'some_secret_access_key')
         sig = c._compute_signature({'abc': 'def',
                                     '\xc3\xa4': 'str type',
-                                    '*+ ~': '*+ ~'})
+                                    '*+ ~': '*+ ~'},
+                                   encoding='utf8')
         self.assertEqual('Esu7vZK6JBsujsaQXT1AHKR5Ols=', sig)

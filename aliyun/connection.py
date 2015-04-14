@@ -127,8 +127,8 @@ class Connection(object):
 
         logger.debug("%s connection to %s created", service, region_id)
 
-    def _percent_encode(self, request):
-        encoding = sys.stdin.encoding or DEFAULT_ENCODING
+    def _percent_encode(self, request, encoding=None):
+        encoding = encoding or sys.stdin.encoding or DEFAULT_ENCODING
 
         try:
             s = unicode(request, encoding)
@@ -141,23 +141,23 @@ class Connection(object):
             safe='~')
         return res
 
-    def _compute_signature(self, parameters):
+    def _compute_signature(self, parameters, encoding=None):
         sorted_params = sorted(parameters.items())
 
         # This is pretty convoluted. urllib.urlencode does almost the same
         # and is faster, so if we switched signature version we could do
         # that instead
-        canonicalized_query_string = '&'.join(['%s=%s' % (self._percent_encode(k),
-                                                          self._percent_encode(v))
+        canonicalized_query_string = '&'.join(['%s=%s' % (self._percent_encode(k, encoding),
+                                                          self._percent_encode(v, encoding))
                                                for k, v in sorted_params])
 
-        string_to_sign = 'GET&%2F&' + self._percent_encode(canonicalized_query_string)
+        string_to_sign = 'GET&%2F&' + self._percent_encode(canonicalized_query_string, encoding)
 
         h = hmac.new(self.secret_access_key + "&", string_to_sign, sha1)
         signature = base64.b64encode(h.digest())
         return signature
 
-    def _build_request(self, params):
+    def _build_request(self, params, encoding=None):
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
         # Use defaults...
@@ -174,7 +174,7 @@ class Connection(object):
         # And overwrite some...
         parameters.update(params)
 
-        signature = self._compute_signature(parameters)
+        signature = self._compute_signature(parameters, encoding=encoding)
         parameters['Signature'] = signature
 
         url = "%s/?%s" % (self.service, urllib.urlencode(parameters))
@@ -236,9 +236,21 @@ class Connection(object):
 
         return responses
 
-    def get(self, params, paginated=False):
+    def get(self, params, paginated=False, encoding=None):
+        """Make a get request to the API.
+
+        Args:
+            params (dict): The parameters to the request.
+            paginated (bool): Should the results be paginated.
+            encoding (str): Encoding of the parameters. By default reads
+                            stdin encoding, or failing that default encoding,
+                            or failing that utf8.
+
+        Return:
+            Parsed result.
+        """
         if paginated:
             return self._perform_paginated_queries(params)
 
-        request = self._build_request(params)
+        request = self._build_request(params, encoding=encoding)
         return self._get(request)
