@@ -23,7 +23,7 @@ setup_requires = [
 ]
 
 tests_require = setup_requires + [
-    'coverage',
+    'coverage>=3.2',
     'mox'
 ]
 
@@ -31,12 +31,12 @@ setup(name='Aliyun',
       version=aliyun_version,
       description='Python client for Aliyun APIs.',
       author='Adam Gray, Akshay Dayal',
-      author_email='adam@addumb.com, akshay@quixey.com',
+      author_email='adam@addumb.com',
       packages=find_packages(exclude=["tests*"]),
       setup_requires = setup_requires,
       scripts=['ali.py'],
       tests_require = tests_require,
       install_requires = [
-          'python-dateutil'
+          'python-dateutil>=1.5'
       ]
     )

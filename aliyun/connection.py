@@ -15,29 +15,30 @@
 
 import base64
 import hmac
-import hashlib
 import json
 import logging
 import os
 import time
 import urllib
 import urllib2
-import urlparse
 import uuid
 import sys
-
 from collections import namedtuple
 from ConfigParser import ConfigParser
 from hashlib import sha1
 
 
 PAGE_SIZE = 50
+DEFAULT_ENCODING = sys.getdefaultencoding() or 'utf8'
 
+logger = logging.getLogger(__name__)
 
 class Error(Exception):
 
     """Base exception class for this module."""
 
+
+Credentials = namedtuple('Credentials', 'access_key_id secret_access_key')
 
 def find_credentials():
     """Tries to get the aliyun credentials from the following in priority:
@@ -61,11 +62,11 @@ def find_credentials():
         access_key_id=ACCESS_KEY
         secret_access_key=SECRET_KEY
     """
-    creds = namedtuple('Credentials', 'access_key_id secret_access_key')
-
-    creds.access_key_id = os.getenv('ALI_ACCESS_KEY_ID', None)
-    creds.secret_access_key = os.getenv('ALI_SECRET_ACCESS_KEY', None)
-    if creds.access_key_id != None and creds.secret_access_key != None:
+    access_key_id = os.getenv('ALI_ACCESS_KEY_ID', None)
+    secret_access_key = os.getenv('ALI_SECRET_ACCESS_KEY', None)
+    if access_key_id is not None and secret_access_key is not None:
+        creds = Credentials(access_key_id=access_key_id,
+                            secret_access_key=secret_access_key)
         return creds
 
     cfg_path = os.path.join(os.getenv('HOME', '/root/'), '.aliyun.cfg')
@@ -77,8 +78,8 @@ def find_credentials():
         cp.read('/etc/aliyun.cfg')
 
     if cp.has_section('default') and cp.has_option('default', 'access_key_id'):
-        creds.access_key_id = cp.get('default', 'access_key_id')
-        creds.secret_access_key = cp.get('default', 'secret_access_key')
+        creds = Credentials(access_key_id=cp.get('default', 'access_key_id'),
+                            secret_access_key=cp.get('default', 'secret_access_key'))
         return creds
     else:
         raise Error("Could not find credentials.")
@@ -124,38 +125,36 @@ class Connection(object):
             self.access_key_id = access_key_id
             self.secret_access_key = secret_access_key
 
-        self.logging= logging.getLogger()
-        self.logging.debug("%s connection to %s created" % (service, region_id))
+        logger.debug("%s connection to %s created", service, region_id)
 
     def _percent_encode(self, request):
-        encoding = sys.stdin.encoding
-        if encoding == None:
-            encoding = sys.getdefaultencoding()
+        encoding = sys.stdin.encoding or DEFAULT_ENCODING
+
+        try:
+            s = unicode(request, encoding)
+        except TypeError:
+            # Most likely request was already unicode
+            s = request
 
         res = urllib.quote(
-            request.decode(encoding).encode('utf8'),
-            '')
-        res = res.replace('+', '%20')
-        res = res.replace('*', '%2A')
-        res = res.replace('%7E', '~')
+            s.encode('utf8'),
+            safe='~')
         return res
 
     def _compute_signature(self, parameters):
-        sortedParameters = sorted(
-            parameters.items(),
-            key=lambda parameters: parameters[0])
+        sorted_params = sorted(parameters.items())
 
-        canonicalizedQueryString = ''
-        for (k, v) in sortedParameters:
-            canonicalizedQueryString += '&' + \
-                self._percent_encode(k) + '=' + \
-                self._percent_encode(unicode(v))
+        # This is pretty convoluted. urllib.urlencode does almost the same
+        # and is faster, so if we switched signature version we could do
+        # that instead
+        canonicalized_query_string = '&'.join(['%s=%s' % (self._percent_encode(k),
+                                                          self._percent_encode(v))
+                                               for k, v in sorted_params])
 
-        stringToSign = 'GET&%2F&' + \
-            self._percent_encode(canonicalizedQueryString[1:])
+        string_to_sign = 'GET&%2F&' + self._percent_encode(canonicalized_query_string)
 
-        h = hmac.new(self.secret_access_key + "&", stringToSign, sha1)
-        signature = base64.encodestring(h.digest()).strip()
+        h = hmac.new(self.secret_access_key + "&", string_to_sign, sha1)
+        signature = base64.b64encode(h.digest())
         return signature
 
     def _build_request(self, params):
@@ -168,7 +167,7 @@ class Connection(object):
             'AccessKeyId': self.access_key_id,
             'SignatureVersion': '1.0',
             'SignatureMethod': 'HMAC-SHA1',
-            'SignatureNonce': str(uuid.uuid1()),
+            'SignatureNonce': str(uuid.uuid4()),
             'TimeStamp': timestamp,
             'RegionId': self.region_id
         }
@@ -183,16 +182,16 @@ class Connection(object):
         return request
 
     def _get(self, request):
-        self.logging.debug('URL requested: %s' % request.get_full_url())
+        logger.debug('URL requested: %s', request.get_full_url())
         try:
             conn = urllib2.urlopen(request)
             response = conn.read()
             encoding = conn.headers['content-type'].split('charset=')[-1]
             unicode_response = unicode(response, encoding)
-            self.logging.debug('URL response: %s' % unicode_response)
+            logger.debug('URL response: %s', unicode_response)
             return json.loads(unicode_response)
         except urllib2.HTTPError as e:
-            self.logging.error('Error GETing URL: %s' % request.get_full_url())
+            logger.error('Error GETing URL: %s', request.get_full_url())
             raise Error(e.read())
 
     def _get_remaining_pages(self, total_count):

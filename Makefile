@@ -24,7 +24,7 @@ all: clean test
 
 clean:
 	rm -rf python-aliyun*.deb build *.egg-info *.egg
-	find . -name '*.pyc' -exec rm {} \;
+	find . -name '*.py[co]' -exec rm {} \;
 	mkdir build
 
 virtualenv:
@@ -32,7 +32,7 @@ virtualenv:
 	$(VENV_ACTIVATE) && python setup.py --quiet develop
 	rm -rf python-aliyun.egg-info
 
-test:
+test: clean
 	mkdir -p build
 	python ./setup.py nosetests
 	mv *.egg-info build/

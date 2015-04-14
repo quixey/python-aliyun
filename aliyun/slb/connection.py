@@ -14,6 +14,8 @@
 # the License.
 
 import collections
+import logging
+
 from aliyun import connection
 from aliyun.slb.model import (
     BackendServer,
@@ -26,6 +28,7 @@ from aliyun.slb.model import (
     TCPListener
 )
 
+logger = logging.getLogger(__name__)
 
 class Error(Exception):
 
@@ -176,7 +179,7 @@ class SlbConnection(connection.Connection):
             params['Bandwidth'] = bandwidth
 
         resp = self.get(params)
-        self.logging.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s".format(resp))
+        logger.debug("Created a load balancer: %(LoadBalancerId)s named %(LoadBalancerName)s at %(Address)s", resp)
         return resp['LoadBalancerId']
 
     def set_load_balancer_status(self, load_balancer_id, status):
@@ -468,21 +471,21 @@ class SlbConnection(connection.Connection):
         params = {'Action': 'SetLoadBalancerTCPListenerAttribute',
                 'LoadBalancerId': load_balancer_id,
                 'ListenerPort': listener_port}
-        if healthy_threshold != None:
+        if healthy_threshold is not None:
             params['HealthyThreshold'] = healthy_threshold
-        if unhealthy_threshold != None:
+        if unhealthy_threshold is not None:
             params['UnhealthyThreshold'] = unhealthy_threshold
-        if scheduler != None:
+        if scheduler is not None:
             params['Scheduler'] = scheduler
-        if health_check != None:
+        if health_check is not None:
             params['HealthCheck'] = 'on' if health_check else 'off'
-        if connect_timeout != None:
+        if connect_timeout is not None:
             params['ConnectTimeout'] = connect_timeout
-        if interval != None:
+        if interval is not None:
             params['Interval'] = interval
-        if connect_port != None:
+        if connect_port is not None:
             params['ConnectPort'] = connect_port
-        if persistence_timeout != None:
+        if persistence_timeout is not None:
             params['PersistenceTimeout'] = persistence_timeout
 
         self.get(params)
