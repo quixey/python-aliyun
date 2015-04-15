@@ -89,6 +89,10 @@ class CredentialsTest(unittest.TestCase):
         self.assertEqual(str, type(encoded))
         self.assertEqual('~%257E', encoded)
 
+        encoded = c._percent_encode(42)
+        self.assertEqual(str, type(encoded))
+        self.assertEqual('42', encoded)
+
     def testSignature(self):
         c = aliyun.connection.Connection('some_region_id',
                                          'ecs',
