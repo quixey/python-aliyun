@@ -133,8 +133,11 @@ class Connection(object):
         try:
             s = unicode(request, encoding)
         except TypeError:
-            # Most likely request was already unicode
-            s = request
+            if not isinstance(request, unicode):
+                # We accept int etc. types as well
+                s = unicode(request)
+            else:
+                s = request
 
         res = urllib.quote(
             s.encode('utf8'),
@@ -240,7 +243,8 @@ class Connection(object):
         """Make a get request to the API.
 
         Args:
-            params (dict): The parameters to the request.
+            params (dict): The parameters to the request. Keys and values
+                           should be string types.
             paginated (bool): Should the results be paginated.
             encoding (str): Encoding of the parameters. By default reads
                             stdin encoding, or failing that default encoding,
