@@ -67,4 +67,4 @@ It accepts arbitrary Key=Value pairs and passes them on to the API after wrappin
     ali --region cn-hangzhou slb Action=DescribeLoadBalancers
 
 """
-__version__ = "1.0.1"
+__version__ = "1.1.0"
