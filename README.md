@@ -1,7 +1,7 @@
 python-aliyun
 =============
 
-Python API wrapper for the Aliyun cloud
+Python API wrapper for the Aliyun cloud. This project is starting to use [git-flow](http://nvie.com/posts/a-successful-git-branching-model/).
 
 Installing
 ----------
