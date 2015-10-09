@@ -182,6 +182,8 @@ class EcsConnection(Connection):
             int(resp['InternetMaxBandwidthIn']),
             int(resp['InternetMaxBandwidthOut']),
             dateutil.parser.parse(resp['CreationTime']),
+	    dateutil.parser.parse(resp['ExpiredTime']),
+	    resp['InstanceChargeType'],
             resp['Description'],
             resp['ClusterId'],
             [x for x in resp['OperationLocks']['LockReason']],
@@ -286,6 +288,26 @@ class EcsConnection(Connection):
             params['InternetMaxBandwidthOut'] = internet_max_bandwidth_out
         if internet_max_bandwidth_in:
             params['InternetMaxBandwidthIn'] = internet_max_bandwidth_in
+
+        self.get(params)
+
+    def renew_instance(self, instance_id, period=None):
+        """Renew an PrePaid Instance.
+
+        Args:
+            instance_id (str): The id fo the instance.
+            period (int): The period of renewing an Instance, in month. Valid values are,
+                                                                - 1 - 9
+                                                                - 12
+                                                                - 24
+                                                                - 36
+        """                                              
+        params = {'Action': 'RenewInstance',
+                  'InstanceId': instance_id}
+
+        if period is None:
+            exit('Period Must be supplied. Valid values are [1-9, 12, 24, 39]')
+        params['Period'] = period
 
         self.get(params)
 
@@ -498,6 +520,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
+            instancechargetype='PrePaid', period=None,
             data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
@@ -578,6 +601,17 @@ class EcsConnection(Connection):
             params['SystemDisk.Category'] = system_disk_type
         if internet_charge_type:
             params['InternetChargeType'] = internet_charge_type
+        # Instance charge type & period
+        if instancechargetype == 'PostPaid':
+            params['InstanceChargeType'] = 'PostPaid'
+        elif instancechargetype == 'PrePaid':
+            params['InstanceChargeType'] = 'PrePaid'
+            if not period or period not in [1,2,3,4,5,6,7,8,9,12,24,36]:
+                exit("ERROR: PrePaid instances Must have a predefined period, in month [ 1-9, 12, 24, 36 ]")
+            else:
+                params['Period'] = period
+        else:
+            exit("InstanceChargeType is null. It is either PrePaid, or PostPaid")
         if data_disks:
             for i, disk in enumerate(data_disks):
                 if isinstance(disk, dict):
