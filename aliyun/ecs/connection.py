@@ -295,7 +295,7 @@ class EcsConnection(Connection):
         """Renew an PrePaid Instance.
 
         Args:
-            instance_id (str): The id fo the instance.
+            instance_id (str): The id of the instance.
             period (int): The period of renewing an Instance, in month. Valid values are,
                                                                 - 1 - 9
                                                                 - 12
@@ -306,7 +306,7 @@ class EcsConnection(Connection):
                   'InstanceId': instance_id}
 
         if period is None:
-            exit('Period Must be supplied. Valid values are [1-9, 12, 24, 39]')
+            exit('Period Must be supplied. Valid values are [1-9, 12, 24, 36]')
         params['Period'] = period
 
         self.get(params)
