@@ -298,6 +298,8 @@ class EcsConnection(Connection):
 	Args:
 	    days (int): Check instances that will expire in <days>.
 	"""
+	# tzinfo has to be the same as the one in instance.expired_time
+        # So we need to get it first, then provide it to now() as an arg
 	expiring_instances = []
 	all_instances = self.get_all_instance_ids()
 	for ins in all_instances:
