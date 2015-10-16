@@ -43,7 +43,6 @@ class Instance(object):
             internet_max_bandwidth_in, internet_max_bandwidth_out,
             creation_time, expired_time, instance_charge_type, 
 	    description, cluster_id, operation_locks, zone_id):
-
         """"Constructor.
 
         Args:
@@ -61,8 +60,8 @@ class Instance(object):
             internet_max_bandwidth_in (int): The max incoming bandwidth.
             internet_max_bandwidth_out (int): The max outgoing bandwidth.
             creation_time (datetime): Its creation time.
-	    expired_time (datetime): The expired time for PrePaid instances.
-	    instance_charge_type: The charge type of instance, either PrePaid or PostPaid.
+            expired_time (datetime): The expired time for PrePaid instances.
+            instance_charge_type: The charge type of instance, either PrePaid or PostPaid.
             description (str): A long description of the instance.
             operation_locks (list of str): Any held operation locks. 'security'
                                            and/or 'financial'
