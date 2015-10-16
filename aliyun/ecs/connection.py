@@ -15,6 +15,7 @@
 
 import json
 import time
+import datetime
 import logging
 
 import dateutil.parser
@@ -291,25 +292,47 @@ class EcsConnection(Connection):
 
         self.get(params)
 
+    def report_expiring_instance(self, days=7):
+        """Report PrePaid instances that are about to expire in <days>.
+
+	Args:
+	    days (int): Check instances that will expire in <days>.
+	"""
+	expiring_instances = []
+	all_instances = self.get_all_instance_ids()
+	for ins in all_instances:
+	    res = self.get_instance(ins)
+	    if res.instance_charge_type == 'PrePaid':
+	        """
+		tzinfo has to be the same as the one in instance.expired_time
+		So we need to get it first, then provide it to now() as an arg
+		"""
+		tz = res.expired_time.tzinfo
+		now = datetime.datetime.now(tz)
+	        if (res.expired_time - now).days <= days:
+		    expiring_instances.append(ins)
+
+	return expiring_instances
+
     def renew_instance(self, instance_id, period=None):
         """Renew an PrePaid Instance.
 
-        Args:
-            instance_id (str): The id of the instance.
-            period (int): The period of renewing an Instance, in month. Valid values are,
-                                                                - 1 - 9
-                                                                - 12
-                                                                - 24
-                                                                - 36
-        """                                              
-        params = {'Action': 'RenewInstance',
-                  'InstanceId': instance_id}
+	Args:
+	    instance_id (str): The id of the instance.
+	    period (int): The period of renewing an Instance, in month. Valid values are,
+	    							- 1 - 9
+								- 12
+								- 24
+								- 36
+	"""
+	params = {'Action': 'RenewInstance',
+	          'InstanceId': instance_id}
+        
+	if period is None:
+	    exit('Period Must be supplied. Valid values are [1-9, 12, 24, 36]')
+	params['Period'] = period
 
-        if period is None:
-            exit('Period Must be supplied. Valid values are [1-9, 12, 24, 36]')
-        params['Period'] = period
-
-        self.get(params)
+	self.get(params)
 
     def replace_system_disk(self, instance_id, image_id):
         """Replace an Instance's system disk to the given Image.
