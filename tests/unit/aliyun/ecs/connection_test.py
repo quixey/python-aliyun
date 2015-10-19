@@ -219,6 +219,8 @@ class GetInstanceTest(EcsConnectionTest):
             'InternetMaxBandwidthIn': '1',
             'InternetMaxBandwidthOut': '2',
             'CreationTime': '2014-02-05T00:52:32Z',
+            'ExpiredTime': '2014-02-05T00:52:32Z',
+            'InstanceChargeType': 'PrePaid',
             'SecurityGroupIds': {'SecurityGroupId': ['sg1', 'sg2']},
             'PublicIpAddress': {'IpAddress': ['ip1', 'ip2']},
             'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
