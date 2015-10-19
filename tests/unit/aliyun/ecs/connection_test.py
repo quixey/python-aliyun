@@ -567,7 +567,6 @@ class CreateInstanceTest(EcsConnectionTest):
                 internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
                 hostname='hname', password='pw', system_disk_type='cloud',
                 internet_charge_type='PayByBandwidth',
-		instance_charge_type='PrePaid', period=1, 
                 data_disks=disks, description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
 
@@ -662,7 +661,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             None, None, None, None, None, None, None, None, None, None, None, None)
         instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
