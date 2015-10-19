@@ -41,7 +41,7 @@ class DnsConnection(Connection):
         access_key_id (str): The access key id.
         secret_access_key (str): The secret access key.
     """
-    def __init__(self, region_id, access_key_id=None, secret_access_key=None):
+    def __init__(self, region_id='cn-hangzhou', access_key_id=None, secret_access_key=None):
         super(DnsConnection, self).__init__(
 	    region_id, 'dns', access_key_id=access_key_id,
 	    secret_access_key=secret_access_key)

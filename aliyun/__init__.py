@@ -55,6 +55,14 @@ Similarly for SLB, get the connection object like this::
 
 See more at :mod:`aliyun.slb`
 
+*DNS*:
+
+Similarly for ECS, get the connection object like this::
+
+    import aliyun.dns.connection
+    conn = aliyun.dns.connection.DnsConnection('cn-hangzhou')
+    print conn.get_all_records(domainname='quixey.be')
+
 ali command
 ===========
 
