@@ -237,6 +237,7 @@ class GetInstanceTest(EcsConnectionTest):
                        'InstanceId': 'i1'}).AndReturn(get_response)
 
         self.mox.ReplayAll()
+	print self.conn.get_instance('i1')
         self.assertEqual(expected_result,
                          self.conn.get_instance('i1'))
         self.mox.VerifyAll()
