@@ -493,6 +493,7 @@ class CreateInstanceTest(EcsConnectionTest):
         self.conn.get({'Action': 'CreateInstance',
                        'ImageId': 'image',
                        'SecurityGroupId': 'sg1',
+		       'InstanceChargeType': 'PostPaid',
                        'InstanceType': 'type'}).AndReturn(get_response)
 
         self.mox.ReplayAll()
@@ -507,6 +508,7 @@ class CreateInstanceTest(EcsConnectionTest):
                        'ImageId': 'image',
                        'SecurityGroupId': 'sg1',
                        'InstanceType': 'type',
+		       'InstanceChargeType': 'PostPaid',
                        'DataDisk.1.Category': 'cloud',
                        'DataDisk.1.Size': 1024}).AndReturn(get_response)
         self.mox.ReplayAll()
