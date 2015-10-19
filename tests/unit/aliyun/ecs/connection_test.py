@@ -220,7 +220,7 @@ class GetInstanceTest(EcsConnectionTest):
             'InternetMaxBandwidthOut': '2',
             'CreationTime': '2014-02-05T00:52:32Z',
             'ExpiredTime': '2014-02-05T00:52:32Z',
-            'InstanceChargeType': 'PrePaid',
+            'InstanceChargeType': 'PostPaid',
             'SecurityGroupIds': {'SecurityGroupId': ['sg1', 'sg2']},
             'PublicIpAddress': {'IpAddress': ['ip1', 'ip2']},
             'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
@@ -238,7 +238,7 @@ class GetInstanceTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.get_instance('i1', instancechargetype='PostPaid'))
+                         self.conn.get_instance('i1'))
         self.mox.VerifyAll()
 
 
