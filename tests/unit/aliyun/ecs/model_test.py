@@ -60,7 +60,7 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now,
+            1, 1, self.now, self.now, 'p',
             'desc', 'cluster', [], 'z')
 
     def testEqual(self):
@@ -76,7 +76,7 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now,
+            1, 1, self.now, self.now, 'p',
             'desc', 'cluster', [], 'z')
 
         self.assertEqual(self.instance1, instance2)
@@ -94,7 +94,7 @@ class InstanceTest(unittest.TestCase):
             ['ip1', 'ip2'],
             ['ip3', 'ip4'],
             'accounting',
-            1, 1, self.now,
+            1, 1, self.now, self.now, 'p',
             'desc', 'cluster', [], 'z')
 
         self.assertNotEqual(self.instance1, instance2)
