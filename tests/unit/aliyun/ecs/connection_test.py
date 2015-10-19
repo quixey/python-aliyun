@@ -219,8 +219,6 @@ class GetInstanceTest(EcsConnectionTest):
             'InternetMaxBandwidthIn': '1',
             'InternetMaxBandwidthOut': '2',
             'CreationTime': '2014-02-05T00:52:32Z',
-            'ExpiredTime': '2014-02-05T00:52:32Z',
-            'InstanceChargeType': 'PostPaid',
             'SecurityGroupIds': {'SecurityGroupId': ['sg1', 'sg2']},
             'PublicIpAddress': {'IpAddress': ['ip1', 'ip2']},
             'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
@@ -232,12 +230,11 @@ class GetInstanceTest(EcsConnectionTest):
         expected_result = Instance(
             'i1', 'name', 'image', 'r', 'type', 'hostname', 'running',
             ['sg1', 'sg2'], ['ip1', 'ip2'], ['ip3', 'ip4'], 'chargetype', 1, 2,
-            dateutil.parser.parse('2014-02-05T00:52:32Z'), dateutil.parser.parse('2014-02-05T00:52:32Z'), 'PostPaid', '', '', [], 'z')
+            dateutil.parser.parse('2014-02-05T00:52:32Z'), '', '', [], 'z')
         self.conn.get({'Action': 'DescribeInstanceAttribute',
                        'InstanceId': 'i1'}).AndReturn(get_response)
 
         self.mox.ReplayAll()
-	print self.conn.get_instance('i1')
         self.assertEqual(expected_result,
                          self.conn.get_instance('i1'))
         self.mox.VerifyAll()
