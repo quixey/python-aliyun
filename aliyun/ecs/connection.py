@@ -545,7 +545,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            instancechargetype='PrePaid', period=None,
+            instancechargetype='PrePaid', period=1,
             data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
