@@ -499,7 +499,7 @@ class CreateInstanceTest(EcsConnectionTest):
         self.mox.ReplayAll()
         self.assertEqual(
             'i1',
-            self.conn.create_instance('image', 'type', 'sg1'))
+            self.conn.create_instance('image', 'type', 'sg1', instancechargetype='PostPaid'))
         self.mox.VerifyAll()
 
     def testMinimalDisks(self):
@@ -515,7 +515,7 @@ class CreateInstanceTest(EcsConnectionTest):
         disks = [('cloud', 1024)]
         self.assertEqual(
             'i1',
-            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks))
+            self.conn.create_instance('image', 'type', 'sg1', data_disks=disks, instancechargetype='PostPaid'))
 
         self.mox.VerifyAll()
 
