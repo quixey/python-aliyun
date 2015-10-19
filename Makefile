@@ -44,7 +44,7 @@ functionaltest:
 
 deb: test
 	mkdir -p build
-	fpm -s python -t deb --deb-user root --deb-group root --iteration=$(BUILD) .
+	fpm -s python -t deb --deb-user root --deb-group root --deb-no-default-config-files --iteration=$(BUILD) .
 	rm -rf *.egg-info
 	mv *.deb build/
 
