@@ -540,6 +540,7 @@ class CreateInstanceTest(EcsConnectionTest):
                        'Password': 'pw',
                        'SystemDisk.Category': 'cloud',
                        'InternetChargeType': 'PayByBandwidth',
+		       'InstanceChargeType': 'PostPaid',
                        'DataDisk.1.Category': 'cloud',
                        'DataDisk.1.Size': 5,
                        'DataDisk.1.Description': 'dd-1-desc',
