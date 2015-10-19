@@ -238,7 +238,7 @@ class GetInstanceTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.assertEqual(expected_result,
-                         self.conn.get_instance('i1'))
+                         self.conn.get_instance('i1', instancechargetype='PostPaid'))
         self.mox.VerifyAll()
 
 
