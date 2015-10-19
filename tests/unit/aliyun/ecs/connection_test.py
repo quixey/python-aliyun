@@ -569,6 +569,7 @@ class CreateInstanceTest(EcsConnectionTest):
                 internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
                 hostname='hname', password='pw', system_disk_type='cloud',
                 internet_charge_type='PayByBandwidth',
+		instancechargetype='PostPaid',
                 data_disks=disks, description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
 
