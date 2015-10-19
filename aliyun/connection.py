@@ -113,12 +113,9 @@ class Connection(object):
         elif service == 'slb':
             self.service = 'https://slb.aliyuncs.com'
             self.version = '2014-05-15'
-	elif service == 'dns':
-	    self.service = 'https://dns.aliyuncs.com'
-	    self.version = '2015-01-09'
         else:
             raise NotImplementedError(
-                'Currently only "ecs", "dns" and "slb" are supported.')
+                'Currently only "ecs" and "slb" are supported.')
 
         if access_key_id is None or secret_access_key is None:
             creds = find_credentials()
@@ -179,9 +176,6 @@ class Connection(object):
         }
         # And overwrite some...
         parameters.update(params)
-	# 'RegionId' is not need for DNS requests
-	if 'DomainName' in parameters:
-	    parameters.pop('RegionId')
 
         signature = self._compute_signature(parameters, encoding=encoding)
         parameters['Signature'] = signature

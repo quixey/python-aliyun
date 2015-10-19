@@ -15,7 +15,6 @@
 
 import json
 import time
-import datetime
 import logging
 
 import dateutil.parser
@@ -183,8 +182,6 @@ class EcsConnection(Connection):
             int(resp['InternetMaxBandwidthIn']),
             int(resp['InternetMaxBandwidthOut']),
             dateutil.parser.parse(resp['CreationTime']),
-	    dateutil.parser.parse(resp['ExpiredTime']),
-	    resp['InstanceChargeType'],
             resp['Description'],
             resp['ClusterId'],
             [x for x in resp['OperationLocks']['LockReason']],
@@ -291,50 +288,6 @@ class EcsConnection(Connection):
             params['InternetMaxBandwidthIn'] = internet_max_bandwidth_in
 
         self.get(params)
-
-    def report_expiring_instance(self, days=7):
-        """Report PrePaid instances that are about to expire in <days>.
-
-	Args:
-	    days (int): Check instances that will expire in <days>.
-	"""
-	# tzinfo has to be the same as the one in instance.expired_time
-        # So we need to get it first, then provide it to now() as an arg
-	expiring_instances = []
-	all_instances = self.get_all_instance_ids()
-	for ins in all_instances:
-	    res = self.get_instance(ins)
-	    if res.instance_charge_type == 'PrePaid':
-	        """
-		tzinfo has to be the same as the one in instance.expired_time
-		So we need to get it first, then provide it to now() as an arg
-		"""
-		tz = res.expired_time.tzinfo
-		now = datetime.datetime.now(tz)
-	        if (res.expired_time - now).days <= days:
-		    expiring_instances.append(ins)
-
-	return expiring_instances
-
-    def renew_instance(self, instance_id, period=None):
-        """Renew an PrePaid Instance.
-
-	Args:
-	    instance_id (str): The id of the instance.
-	    period (int): The period of renewing an Instance, in month. Valid values are,
-	    							- 1 - 9
-								- 12
-								- 24
-								- 36
-	"""
-	params = {'Action': 'RenewInstance',
-	          'InstanceId': instance_id}
-        
-	if period is None:
-	    exit('Period Must be supplied. Valid values are [1-9, 12, 24, 36]')
-	params['Period'] = period
-
-	self.get(params)
 
     def replace_system_disk(self, instance_id, image_id):
         """Replace an Instance's system disk to the given Image.
@@ -545,7 +498,6 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            instancechargetype='PrePaid', period=None,
             data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
@@ -626,17 +578,6 @@ class EcsConnection(Connection):
             params['SystemDisk.Category'] = system_disk_type
         if internet_charge_type:
             params['InternetChargeType'] = internet_charge_type
-        # Instance charge type & period
-        if instancechargetype == 'PostPaid':
-            params['InstanceChargeType'] = 'PostPaid'
-        elif instancechargetype == 'PrePaid':
-            params['InstanceChargeType'] = 'PrePaid'
-            if not period or period not in [1,2,3,4,5,6,7,8,9,12,24,36]:
-                exit("ERROR: PrePaid instances Must have a predefined period, in month [ 1-9, 12, 24, 36 ]")
-            else:
-                params['Period'] = period
-        else:
-            exit("InstanceChargeType is null. It is either PrePaid, or PostPaid")
         if data_disks:
             for i, disk in enumerate(data_disks):
                 if isinstance(disk, dict):

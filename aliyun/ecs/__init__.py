@@ -24,7 +24,6 @@ The following ECS API actions are nearly fully supported:
     * StartInstance
     * StopInstance
     * RebootInstance
-    * RenewInstance
     * DeleteInstance
     * ModifyInstanceAttribute
     * CreateInstance
