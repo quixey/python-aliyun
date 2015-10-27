@@ -545,7 +545,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
-            instancechargetype='PrePaid', period=1,
+            instance_charge_type='PrePaid', period=1,
             data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
@@ -557,6 +557,8 @@ class EcsConnection(Connection):
             instance_name (str): The name to use for the instance.
             internet_max_bandwidth_in (int): Max bandwidth in.
             internet_max_bandwidth_out (int): Max bandwidth out.
+	    instance_charge_type (str): The charge type of the instance, 'PrePaid' or 'PostPaid'.
+	    period (int): The time period of the 'PrePaid' instances.
             hostname (str): The hostname to assign.
             password (str): The root password to assign.
             system_disk_type (str): cloud, ephemeral or ephemeral_hio.
@@ -627,9 +629,9 @@ class EcsConnection(Connection):
         if internet_charge_type:
             params['InternetChargeType'] = internet_charge_type
         # Instance charge type & period
-        if instancechargetype == 'PostPaid':
+        if instance_charge_type == 'PostPaid':
             params['InstanceChargeType'] = 'PostPaid'
-        elif instancechargetype == 'PrePaid':
+        elif instance_charge_type == 'PrePaid':
             params['InstanceChargeType'] = 'PrePaid'
             if not period or period not in [1,2,3,4,5,6,7,8,9,12,24,36]:
                 exit("ERROR: PrePaid instances Must have a predefined period, in month [ 1-9, 12, 24, 36 ]")
@@ -672,6 +674,7 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
+	    instance_charge_type='PrePaid', period=1,
             assign_public_ip=True, block_till_ready=True,
             data_disks=None, description=None, zone_id=None):
         """Create and start an instance.
@@ -693,6 +696,8 @@ class EcsConnection(Connection):
             instance_name (str): The name to use for the instance.
             internet_max_bandwidth_in (int): Max bandwidth in.
             internet_max_bandwidth_out (int): Max bandwidth out.
+            instance_charge_type (str): The charge type of the instance, 'PrePaid' or 'PostPaid'.
+            period (int): The time period of the 'PrePaid' instances.
             hostname (str): The hostname to assign.
             password (str): The root password to assign.
             system_disk_type (str): cloud, ephemeral or ephemeral_hio.
@@ -761,6 +766,7 @@ class EcsConnection(Connection):
             hostname=hostname, password=password,
             system_disk_type=system_disk_type,
             internet_charge_type=internet_charge_type,
+	    instance_charge_type=instance_charge_type,
             data_disks=data_disks, description=description, zone_id=zone_id)
 
         # Modify the security groups.
