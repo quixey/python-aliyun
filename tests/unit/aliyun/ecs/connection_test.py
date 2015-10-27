@@ -635,7 +635,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
             internet_max_bandwidth_in=1, internet_max_bandwidth_out=2,
             hostname='hname', password='pw', system_disk_type='cloud',
             internet_charge_type='PayByBandwidth', assign_public_ip=False,
-	    instancecharge_type='PostPaid',
+	    instance_charge_type='PostPaid',
             block_till_ready=False, data_disks=[('cloud', 5)],
             description='desc', zone_id='test-zone-a'))
         self.mox.VerifyAll()
@@ -661,16 +661,17 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.assertEqual('i1', self.conn.create_and_start_instance(
             'image', 'type', 'sg1',
             additional_security_group_ids=['sg2', 'sg3'],
+	    instance_charge_type='PostPaid',
             block_till_ready=False))
         self.mox.VerifyAll()
 
     def testWithBlocking(self):
         instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
@@ -700,7 +701,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
     def testWithBlockingTimesOut(self):
         instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
@@ -730,10 +731,10 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
     def testWithAdditionalSecurityGroupsBlocking(self):
         instance_starting = Instance(
             'i1', None, None, None, None, None, 'Starting', None,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         instance_running = Instance(
             'i1', None, None, None, None, None, 'Running', None,
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+            None, None, None, None, None, None, None, None, None, None, None, None)
         self.conn.create_instance(
             'image', 'type', 'sg1',
             hostname=None, instance_name=None, internet_charge_type=None,
