@@ -614,7 +614,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.assertEqual('i1', self.conn.create_and_start_instance(
-            'image', 'type', 'sg1', block_till_ready=False))
+            'image', 'type', 'sg1', block_till_ready=False, instance_charge_type='PostPaid'))
         self.mox.VerifyAll()
 
     def testWithAllParams(self):
@@ -695,7 +695,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         self.assertEqual('i1', self.conn.create_and_start_instance(
-            'image', 'type', 'sg1'))
+            'image', 'type', 'sg1', instance_charge_type='PostPaid'))
         self.mox.VerifyAll()
 
     def testWithBlockingTimesOut(self):
@@ -722,7 +722,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
 
         self.mox.ReplayAll()
         try:
-            self.conn.create_and_start_instance('image', 'type', 'sg1')
+            self.conn.create_and_start_instance('image', 'type', 'sg1', instance_charge_type='PostPaid')
             self.fail('Should throw error if times out')
         except ecs.Error as err:
             self.assertTrue('Timed out' in str(err))
@@ -761,6 +761,7 @@ class CreateAndStartInstanceTest(EcsConnectionTest):
         self.mox.ReplayAll()
         self.assertEqual('i1', self.conn.create_and_start_instance(
             'image', 'type', 'sg1',
+	    instance_charge_type='PostPaid',
             additional_security_group_ids=['sg2', 'sg3']))
         self.mox.VerifyAll()
 
