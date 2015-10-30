@@ -3,6 +3,8 @@ python-aliyun
 
 Python API wrapper for the Aliyun cloud
 
+[http://python-aliyun.readthedocs.org](http://python-aliyun.readthedocs.org/en/latest/)
+
 Installing
 ----------
 
