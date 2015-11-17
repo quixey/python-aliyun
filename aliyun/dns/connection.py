@@ -60,7 +60,7 @@ class DnsConnection(Connection):
 	"""
 
 	if rr is None or value is None:
-	    exit("ERROR: Both RR and its value MUST be supplied.")
+	    abort("ERROR: Both RR and its value MUST be supplied.")
 
 	params = {'Action': 'AddDomainRecord', \
 		  'Type': type, \
@@ -79,36 +79,41 @@ class DnsConnection(Connection):
 
 	Returns: All records in the Domain.
 	"""
-
+	all_records = []
 	params = {'Action': 'DescribeDomainRecords', \
 	          'DomainName': domainname, \
 		 }
 
-        return self.get(params)['DomainRecords']['Record']
+	for resp in self.get(params, paginated=True):
+		for item in resp['DomainRecords']['Record']:
+			all_records.append(item)
+	return all_records
 
-    def get_record_id(self, rr, value, domainname):
+    def get_record_id(self, rr, value, type='A', domainname='quixey.be'):
         """
 	Get the RecordId of the specified RR & Value pair.
 
 	Args:
 	    rr (str): Resource Record to query, such as www
-	    value (str): The IP address of the RR.
-	    domainname (str): The domain name the rr will be added into.
+	    value (str): The IP address of the RR
+	    type (str): The Resource Record Type, such as A, CNAME, MX
+	    domainname (str): The domain name the rr will be added into
 
 	Returns: The RecordId
 	"""
 
 	if rr is None or value is None:
-	    exit("ERROR: Please specify the RR and its IP addr.")
+	    abort("ERROR: Please specify the RR and its IP address.")
 
-	all_records = self.get_all_records(domainname)
-	for record in all_records:
-	    if record['RR'] == rr and record['Value'] == value:
-	        return record['RecordId']
+	params = {'Action': 'DescribeDomainRecords', \
+		  'DomainName': domainname, \
+		  'RRKeyWord': rr, \
+		  'TypeKeyWord': type, \
+		  'ValueKeyWord': value, \
+		 } 
+        return self.get(params)['DomainRecords']['Record'][0]['RecordId']
 
-        return
-
-    def delete_record(self, rr=None, value=None, domainname="quixey.be"):
+    def delete_record(self, rr=None, value=None, type='A', domainname="quixey.be"):
         """
 	Delete the specified record.
         
@@ -116,13 +121,12 @@ class DnsConnection(Connection):
 	    rr (str): Resource Record to query, such as www
 	    value (str): The IP address of the RR.
 	    domainname (str): The domain name the rr will be added into.
-
 	"""
 
 	if rr is None or value is None:
-	    exit("ERROR: Please specify the RR and its IP addr.")
+	    abort("ERROR: Please specify the RR and its IP address.")
 
-	record_id = self.get_record_id(rr, value, domainname)
+	record_id = self.get_record_id(rr, value, type, domainname)
         if record_id:
 	    params = {'Action': 'DeleteDomainRecord', \
 	              'RecordId': record_id, \

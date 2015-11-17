@@ -298,8 +298,6 @@ class EcsConnection(Connection):
 	Args:
 	    days (int): Check instances that will expire in <days>.
 	"""
-	# tzinfo has to be the same as the one in instance.expired_time
-        # So we need to get it first, then provide it to now() as an arg
 	expiring_instances = []
 	all_instances = self.get_all_instance_ids()
 	for ins in all_instances:
@@ -307,7 +305,7 @@ class EcsConnection(Connection):
 	    if res.instance_charge_type == 'PrePaid':
 	        """
 		tzinfo has to be the same as the one in instance.expired_time
-		So we need to get it first, then provide it to now() as an arg
+		So we get it first, then provide it to now() as an arg
 		"""
 		tz = res.expired_time.tzinfo
 		now = datetime.datetime.now(tz)

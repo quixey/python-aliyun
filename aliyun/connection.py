@@ -97,7 +97,7 @@ class Connection(object):
         Args:
             region_id (str): The id of the region to connect to.
             service (str): The service to connect to. Current supported are:
-                ecs, slb.
+                ecs, dns, slb.
             access_key_id (str): The access key id.
             secret_access_key (str): The secret access key.
         """
@@ -179,7 +179,7 @@ class Connection(object):
         }
         # And overwrite some...
         parameters.update(params)
-	# 'RegionId' is not need for DNS requests
+	# 'RegionId' is not needed for DNS requests
 	if 'DomainName' in parameters:
 	    parameters.pop('RegionId')
 
