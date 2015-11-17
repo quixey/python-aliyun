@@ -46,14 +46,14 @@ class DnsConnection(Connection):
 	    region_id, 'dns', access_key_id=access_key_id,
 	    secret_access_key=secret_access_key)
     
-    def add_record(self, rr=None, type='A', value=None, domainname="quixey.be"):
+    def add_record(self, rr=None, value=None, rrtype='A', domainname="quixey.be"):
         """
 	Add a DNS record to specified Domain.
 
 	Args:
 	    rr (str): Resource Record to add.
 	    value (str): The IP address of the RR.
-	    type (str): Type of the Resource Record, A, PTR, CNAME for instance.
+	    rrtype (str): Type of the Resource Record, A, PTR, CNAME for instance.
 	    domainname (str): The domain name the rr will be added into.
 	
 	Returns: 
@@ -63,7 +63,7 @@ class DnsConnection(Connection):
 	    abort("ERROR: Both RR and its value MUST be supplied.")
 
 	params = {'Action': 'AddDomainRecord', \
-		  'Type': type, \
+		  'Type': rrtype, \
 		  'DomainName': domainname, \
 		  'RR': rr, \
 		  'value': value, \
@@ -89,14 +89,14 @@ class DnsConnection(Connection):
 			all_records.append(item)
 	return all_records
 
-    def get_record_id(self, rr, value, type='A', domainname='quixey.be'):
+    def get_record_id(self, rr, value, rrtype='A', domainname='quixey.be'):
         """
 	Get the RecordId of the specified RR & Value pair.
 
 	Args:
 	    rr (str): Resource Record to query, such as www
 	    value (str): The IP address of the RR
-	    type (str): The Resource Record Type, such as A, CNAME, MX
+	    rrtype (str): The Resource Record Type, such as A, CNAME, MX
 	    domainname (str): The domain name the rr will be added into
 
 	Returns: The RecordId
@@ -108,12 +108,12 @@ class DnsConnection(Connection):
 	params = {'Action': 'DescribeDomainRecords', \
 		  'DomainName': domainname, \
 		  'RRKeyWord': rr, \
-		  'TypeKeyWord': type, \
+		  'TypeKeyWord': rrtype, \
 		  'ValueKeyWord': value, \
 		 } 
         return self.get(params)['DomainRecords']['Record'][0]['RecordId']
 
-    def delete_record(self, rr=None, value=None, type='A', domainname="quixey.be"):
+    def delete_record(self, rr=None, value=None, rrtype='A', domainname="quixey.be"):
         """
 	Delete the specified record.
         
@@ -126,7 +126,7 @@ class DnsConnection(Connection):
 	if rr is None or value is None:
 	    abort("ERROR: Please specify the RR and its IP address.")
 
-	record_id = self.get_record_id(rr, value, type, domainname)
+	record_id = self.get_record_id(rr, value, rrtype, domainname)
         if record_id:
 	    params = {'Action': 'DeleteDomainRecord', \
 	              'RecordId': record_id, \
