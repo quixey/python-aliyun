@@ -544,6 +544,7 @@ class EcsConnection(Connection):
             hostname=None, password=None, system_disk_type=None,
             internet_charge_type=None,
             instance_charge_type='PrePaid', period=1,
+	    io_optimized=None,
             data_disks=None, description=None, zone_id=None):
         """Create an instance.
 
@@ -557,6 +558,9 @@ class EcsConnection(Connection):
             internet_max_bandwidth_out (int): Max bandwidth out.
 	    instance_charge_type (str): The charge type of the instance, 'PrePaid' or 'PostPaid'.
 	    period (int): The time period of the 'PrePaid' instances.
+	    io_optimized (str): Specify if the instance is IO optimized instance
+	                        - None (default)
+			        - optimized
             hostname (str): The hostname to assign.
             password (str): The root password to assign.
             system_disk_type (str): cloud, ephemeral or ephemeral_hio.
@@ -618,6 +622,8 @@ class EcsConnection(Connection):
             params['InternetMaxBandwidthIn'] = str(internet_max_bandwidth_in)
         if internet_max_bandwidth_out:
             params['InternetMaxBandwidthOut'] = str(internet_max_bandwidth_out)
+	if io_optimized:
+	    params['IoOptimized'] = io_optimized
         if hostname:
             params['HostName'] = hostname
         if password:
