@@ -19,7 +19,6 @@ from aliyun import __version__ as aliyun_version
 setup_requires = [
     'nose>=1.3.0',
     'sphinx',
-#   'sphinxcontrib-programoutput',  # Remove this requirement. PHNX-3319
 ]
 
 tests_require = setup_requires + [
