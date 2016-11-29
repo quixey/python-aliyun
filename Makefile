@@ -29,7 +29,12 @@ clean:
 
 virtualenv:
 	test -d $(VENV_PATH) || virtualenv $(VENV_PATH)
-	$(VENV_ACTIVATE) && sudo -u ubuntu pip install -U pip && python setup.py --quiet develop
+	$(VENV_ACTIVATE) && \
+          sudo apt-get install openssl && \
+          easy_install setuptools && \
+          pip install -U pip sphinxcontrib-programoutput pyopenssl ndg-httpsclient pyasn1 && \
+          pip -V && \
+          python setup.py --quiet develop
 	rm -rf python-aliyun.egg-info
 
 test: clean
