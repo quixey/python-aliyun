@@ -29,7 +29,7 @@ clean:
 
 virtualenv:
 	test -d $(VENV_PATH) || virtualenv $(VENV_PATH)
-	$(VENV_ACTIVATE) && sudo -u ubuntu pip install -U pip && sudo -u ubuntu pip install sphinxcontrib-programoutput && python setup.py --quiet develop
+	$(VENV_ACTIVATE) && sudo -u ubuntu pip install -U pip && python setup.py --quiet develop
 	rm -rf python-aliyun.egg-info
 
 test: clean
