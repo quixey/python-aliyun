@@ -545,7 +545,13 @@ class EcsConnection(Connection):
             internet_charge_type=None,
             instance_charge_type='PrePaid', period=1,
 	    io_optimized=None,
-            data_disks=None, description=None, zone_id=None):
+            data_disks=None, description=None, zone_id=None,
+            vswitch_id=None, 
+            tag1_key=None, tag1_value=None,
+            tag2_key=None, tag2_value=None,
+            tag3_key=None, tag3_value=None,
+            tag4_key=None, tag4_value=None,
+            tag5_key=None, tag5_value=None):
         """Create an instance.
 
         Args:
@@ -657,6 +663,29 @@ class EcsConnection(Connection):
         if zone_id:
             params['ZoneId'] = zone_id
 
+        if vswitch_id:
+            params['VSwitchId'] = vswitch_id
+        if tag1_key:
+            params['Tag.1.Key'] = tag1_key
+        if tag1_value:
+            params['Tag.1.Value'] = tag1_value
+        if tag2_key:
+            params['Tag.2.Key'] = tag2_key
+        if tag2_value:
+            params['Tag.2.Value'] = tag2_value
+        if tag3_key:
+            params['Tag.3.Key'] = tag3_key
+        if tag3_value:
+            params['Tag.3.Value'] = tag3_value
+        if tag4_key:
+            params['Tag.4.Key'] = tag4_key
+        if tag4_value:
+            params['Tag.4.Value'] = tag4_value
+        if tag5_key:
+            params['Tag.5.Key'] = tag5_key
+        if tag5_value:
+            params['Tag.5.Value'] = tag5_value
+
         return self.get(params)['InstanceId']
 
     def allocate_public_ip(self, instance_id):
@@ -680,7 +709,13 @@ class EcsConnection(Connection):
             internet_charge_type=None,
 	    instance_charge_type='PrePaid', period=1,
             assign_public_ip=True, block_till_ready=True,
-            data_disks=None, description=None, zone_id=None):
+            data_disks=None, description=None, zone_id=None,
+            vswitch_id=None, 
+            tag1_key=None, tag1_value=None,
+            tag2_key=None, tag2_value=None,
+            tag3_key=None, tag3_value=None,
+            tag4_key=None, tag4_value=None,
+            tag5_key=None, tag5_value=None):
         """Create and start an instance.
 
         This is a convenience method that does more than just create_instance.
@@ -771,7 +806,13 @@ class EcsConnection(Connection):
             system_disk_type=system_disk_type,
             internet_charge_type=internet_charge_type,
 	    instance_charge_type=instance_charge_type,
-            data_disks=data_disks, description=description, zone_id=zone_id)
+            data_disks=data_disks, description=description, zone_id=zone_id,
+            vswitch_id=vswitch_id, tag1_key=tag1_key, 
+            tag1_value=tag1_value,
+            tag2_key=tag2_key, tag2_value=tag2_value,
+            tag3_key=tag3_key, tag3_value=tag3_value,
+            tag4_key=tag4_key, tag4_value=tag4_value,
+            tag5_key=tag5_key, tag5_value=tag5_value)
 
         # Modify the security groups.
         if additional_security_group_ids:
