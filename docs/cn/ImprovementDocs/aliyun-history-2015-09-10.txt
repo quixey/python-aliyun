@@ -1,0 +1,194 @@
+# Quixey - Alibaba - AliYun History 
+# 2015-09-10
+
+# Prior to 2014
+Michael Avrukin and Chi-Chao Chang have preliminary technical discussions with Alibaba about building a system in China to serve Alibaba mobiile app search traffic.
+Discussions around whether Quixey will generate documents for Alibaba's search online system, or whether to Quixey's online systems (called "Quixey Front End" or QFE) in these discussions.
+Some preliminary discussion about technologies (Cassandra, etc) happens, but no firm plans are made.  Alibaba brings up question of hosting on AWS vs Alibaba's new cloud service, AliYun, and the team prepares a gap analysis of current Quixey software on AWS and what facilities it uses vs what facilities AliYun currently offers, though we agree that we would deploy future Quixey software on a future version of either AWS or AliYun.
+
+# 2014-01-14
+- Gary Liew sends out gap analysis document for internal Quixey use to Konstantin Novoselov, Leigh Klotz, Sudhir Mohan, Chi-Chao Chang, Guru Gowrappan: Document "Aliyun Gap Analysis 2014-01-14.pptx"
+    - Team prepares for a meeting 2014-01-16 with the following people:
+    - TANG Hong: Overall Aliyun Lead
+    - NI Hao: Mainly responsible for EC2 related migration
+    - CAI Hua: Mainly responsible for NoSQL solutions (MongoDB, HBase, Cassandra, etc)
+    - TANG Zinan: Mainly responsible for EMR migration to ODPS 
+
+- Quixey position is that AliYun is not mature and does not have the IaaS facilities necessary to support Quixey's software development.  Hosting of systems that are not being updated may be possible, but all other facilities should be handled in AWS.
+- Quixey contacts AWS to find out about status of AWS Bejing.
+- Attachment: Quixey Gap Analysis document shared with Alibaba and AliYun: "2014-01-14 Aliyun Gap Analysis.pptx"
+
+# 2014-01-14 
+Gary Liew informs Hong Tang that AWS has offered Quixey to join AWS Beijing in Q1.  Quixey's goal is to find out if AliYun can handle Quixey's needs at the upcoming meeting and Gary asks for an AliYun engineering account.
+Hao Nih provides access to AliYun.  Quixey finds out that "Since many service of aliyun.com is prepay, so please let me take some time to apply some money for this account."
+Hong Tang responds that he will be responsible for the AliYun migration, and asks "we would like to talk directly to Quixey engineers and sort out a TODO list (you may think of it as a more detailed view of Gap Analysis) from Aliyun's end"
+
+# 2014-01-17
+- Quixey/Aliun Gap analysis phone call and subsequent email from meeting
+Quixey: Gary Liew, Chi-Chao Chang, Jaeik Song, Jason Prosnitz, K. Guru Gowrappan, Michael Avrukin, Konstantin Novoselov, Leigh Klotz
+Alibaba/AliYun: Hong Tang <hongtang@aliyun-inc.com> [AliYun Lead], <hao.nih@aliyun-inc.com> [ECS, EBS, CloudWatch], <zinan.tang@aliyun-inc.com> [ODPS, OCS, CDN], <ch.caih@alibaba-inc.com> [OSS, OTS]
+Attachment: (Quixey Meeting Notes document, not shared with Alibaba): "2015-01-17 Quixey Mail - Meeting notes from Quixey_Aliyun call.pdf"
+Attachment: "2014-01-17-Quixey_AWS_Operational_Tasks.xlsx"
+Hong Tang responds that he will address questions Quixy team raised.
+
+
+# 2014-01-21
+- Quixey onsite meeting with Hong Tang, overall AliYun lead; other Alibaba personnel are on phone call.  US: Gary Liew, Chi-Chao Chang, Guru Gowrappan.
+- Hong Tang proposees that AliYun in Beta be used for Quixey's first installation outside AWS. 
+
+- AWS Beijing timeline does not align with project goals, as it is Beta only and their beta list was closed and not accepting new engagements for 6 months.
+- Quixey proposes a test of AliYun: online serving in AliYun and all offline (content and analytics) done in AWS US
+- Hong Tang agrees but says that eventually content processing and analytics processing must move within Chinese borders because of info tech laws; 
+- Quixey suggests that AWS Beijing could serve this role, at less development and maintenance effort for Quixey
+- Hong Tang asks that Quixey give a report back of missing features in AliYun, and promises to make improvements and to share roadmap; 
+- Hong says that AliYun will never have MapReduce, only ODPS.
+- Quixey opts not to use ODPS, though Hong Tang suggested that we replace all our use of Pig, Hive, and Java-based MapReduce jobs with ODPS.  Quixey declines, but continues to investigate ODPS.
+- Leigh proposes to Hong Tang that he investigate directly supporting Linux Containers in AliYun, as this would help both multi-cloud and multi-environment deployments for Quixey.  Hong asks for information.
+
+# 2014-01-21
+Quixey receives AliYun documentation, all in Chinese, and it is approximately 1 year old (dating from 2013)
+
+- Current AliYun facilities are limited to use are limited to ECS (compute servers), SLB (network load balancer), RDS (MySql), and OCS (cache).
+- Michael Avrukin, Adam Grey, and Akshay Dayal begin investingating AliYun.  There is no documentation in English.  Chinese documentation is missing for most API calls.  Most services (including ECS, the servers) are pre-pay.
+
+Quixey tries to use AliYun API to bring up a server, but all API calls get errors.  AliYun requires money to be deposited into an AliPay account becuase all services are prepaid.
+AliYun API does not allow automation for bringing up servers; documented calls such as "CreateInstance" and "DeleteInstance" give "Unsupported Operation" errors.
+This pattern repeats for several months: 
+- documented services do not work
+- services are split into incompatible pre-pay / post-pay versions; pre-pay offers some features and post-pay offers fewer features; pre-pay is not automatable so Quixey creates standing instances and updates them.
+- Quixey writes software or builds a workaround and moves on to the next problem
+- Payments are tied to a Chinese cell phone and Quixey cannot bring up new services. Services that are brought up disappear without warning.  
+- Re-initializing servers causes the paid services accounting to become lost and a new server costs AliPay money again
+- AliPay requires periodic confirmation from a cell phone; cell phone is held either by Hong Tang or Nih Hao, and when they are unavailable Quixey cannot allocate servers or other AliYun services
+- AliYun has a REST API that is documented only in Chinese, and changes frequently with no warning.  There is no Python SDK; automation tools require a Python SDK.
+
+# 2014-01-21
+- Alibaba asks for a answer by the end of the week as to whether Quixey will use AliYun or not
+- Quixey shares AliYun ECS API gap analysis with Hong Tang 204-01-21-Quixey_AWS_Operational_Tasks-20140120-Hong.xlsx 
+- There are many significant other gaps, but these are the main ones identified so far:
+  Attachment: 2014-01-21-quixey-engineering-gap-analysis-2014Q1.pdf
+  Attachment 2014-01-21-ECS-API-Reference-Internal.docx
+  Attachment: 2014-01-21-AWS_Operational_task_breakdown.xlsx
+  Attachment: 204-01-21-Quixey_AWS_Operational_Tasks-20140120-Hong.xlsx 
+- Quixey asks for reports from other AliYun customers on best practices, and on whether software such as Splunk (for log monitoring for operational stability) is used by those customers.  
+- Hong responds (by phone) that AliYun has limited customers and none are using Splunk, as far as he knows.  Game website hosting and cloud experimentation appear to be the main users for AWS.
+- Hong promises to share future AliYun roadmap with Quixey and take Quixey's problems as use cases for the future.
+
+
+# 2014-01-27
+Quixey and Alibaba propose milestones: 
+- M1 with online serving only and content processing in US; no analytics processing because it is a test system
+- M2 with all components working in AliYun
+- Quixey AliYun API authorization again, and documentation proper use of load balancer, and enough credits in AliPay to start building services
+
+# 2014-01-29
+Quixey gap analysis shows that Quixey must develop and be responsible for the folliowing:
+- DNS
+- ECS instance initialization data (a key component of the AWS automation pipeline); without this, AliYun is on-demand hosting, not IaaS
+- MapReduce: Quixey must bring up and maintain its own Cloudera instance, rather than using Elastic MapReduce as in AWS
+
+# 2014-02-07
+- Quixey asks to be part of OCS Beta.  OCS is hosted memcache, and ECS in AWS is a mature service.
+
+# 2014-02-14
+- Quixey again asks for access to SLB, OCS, ECS Snapshots, and RDS and gives a final required date of 2014-02-19.
+- Quixey asks about memory, connection, and instance count quotas.  Quixey asks about network bandwidth and public IP addresses and API access to these facilities.
+- Zinan Tang responds that bandwidth is unlimited and that future limitations will be on outgoing network only.
+- Nih Hao reports that OCS is not available in Qingdao region.
+
+# 2014-02-26
+- Leigh sends information to Hong Tang on Linux Containers and Docker: Summary "We believe that LXC deployments may be a valuable offering for developers to do dev/test/stage/prod launches multi-cloud with a single artifact."
+- No response from Hong
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Faced with lack of PaaS and IaaS facilities in AWS, non-working API, and a pre-paid "use it or lose it" model, 
+| Quixey decides to treat AliYun as a hosting environment for M1/M2/M3 and instead of using it like hosting, 
+| which requires statically allocating machines and using Puppet, Fab, and Debian APT repo technology to maintain 
+| multiple standing environments and update software on instances that are maintained as if they were real hardware.
+| 
+| Quixey contracts with a third party and works in-house to develop multi-cloud tools including a Python SDK that uses the AliYun API, but
+| tracking unannounced and undocumented changes in AliYun API is problematic.  Quixey develops an additional library and open 
+| sources it, Dragon, for using OSS and S3, to help other potential customers of AliYun migrate from AWS.
+|
+| Quixey develops an "instance data" service to allow ECS instances to be given configuration information when they start.
+| Without this feature, it's not possible to build clusters of related servers and give them pre-launch instructions such
+| as which environment they are in.  This is a significant barrier to PaaS usage of AliYun.
+|
+| This manual work for software development and deployment in AliYun is markedly different from what Quixey does in AliYun, and the
+| division of staff and opportunity here causes significant problems with Quixey's work in software development in AWS, and stalls
+| automation work.  
+|
+| After YunOS goes live and AliYun offers no improvments, Quixey staff hired for PaaS/IaaS automation leave the company,
+| causing significant harm to the company's ability to reduce the AliYun and AWS server footprint.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+# 2014-03-29
+AliYun halts all Quixey instances due to accounting error.  When AliYun restores the servers, Quixey is unable to access them.
+Hong Tang proposes that Quixey switch from pre-paid to "PayByTraffic" mode, but that Alibaba will still pay the account.
+Unfortunately, Adam Gray observes that PayByTraffic limits the network speed, and that software development and deployment does not work over the limited network.
+Nih Hao promises to investigate.
+
+# 2014-04-09
+Miika Haapalainen reports that ECS (servers) in AliYun are to be set to "run forever" and no longer require deposit of funds by cell phone to stay up.
+Mark Liu (LiuFei) reports this from AliYun.
+However, there still remains a split between pre- and post-paid services in API functionality.
+Date for changover is set to be after M1 demo.  Report from AliYun is that we move to "infinite funding" after that.
+
+# 2014-04-09
+Quixey changes to PayByBandwidth instead of PayByTraffic. PayByTraffic is not supposed to be slow, but we cannot test it because the account has no finds.
+Hong Tang reports that it is not supposed to happen, and gets the bug fixed the same day.  Quixey asks for a 24x7 escalation path for hosting funds failure issues, and Hong responds that he will research it, but that he cannot find anyone responsible for Quixey's account.  Hong adds more voucher credits to the account and reporst that AliYun engineers will look for how he can turn off the shutdown-on-negative-balance so that Quixey's servers will never be terminated due to accounting problems on the Alibaba side.  Adam Grey reports that even though there are vouchers in the account, they are stuck on "activating" and we cannot use the servers.  Hong reports he will investigate this new issue.
+
+# 2014-04-24
+Mark Liu of AliYun shares their product road map.
+The roadmap includes AutoScaling Groups (for automation) by July 31st.  It proposes access controls (like AWS IAM) by April 3rd for ECS (servers) and by July 31 for other OSS (like S3) and load balancers.
+There is no roadmap for Python API, English documentation, API releases and backward compatibility, DNS, Instance Data (critical for automation), or Hadoop.
+
+Attachment: 2014-04-24-aliyun product road map.xlsx
+
+# 2015-05-09
+Gary Liew of Quixey asks Hong Tang for outlook for MapReduce support.  Hong Tang recommends that AliYun will not offer MapReduce support, and that they want to maintain a neutral stance on Hadoop with regard to vendors, and that they plan to focus on their ODPS (Hive-like) system.  Hong recommends that Quixey contact a company called Qubole.  Quixey eventually contacts Qubole and gets a bid for $150,000 for Qubole to bring up SaaS Hadoop on AliYun, but only if Quixey or Aliyun provides staff to handle AliYun and its API for Qubole. Since AliYun won't provide staff and Quixey's staff are on many simultaneous tasks related to AliYun deployment, Quixey decides to use its own staff to install and maintain Cloudera Hadoop.
+
+# 2015-06-06
+Quixey is unable to provision RDS, (MySql services).  RDS is not elastic, and requires the use of specific vouchers to purchase; the same voucher cannot purchase multiple instances of RDS.
+
+# 2014-08-18
+AliYun Load Balancer API goes down, so it is not possible for Quixey to release new software.
+
+# 2014-07-11
+Quixey slow performance is traced to a bug with SLB.
+
+# 2014-10-14
+Quixey's account again ran out of funds, and Quixey was unable to bring up new instances for releasing software.
+
+# 2014-10-22
+OSS is no longer accessible; problem is traced to an unannounced DNS server change at AliYun.  Since AliYun does not provide DNS services (I.e. Route 53 at AWS), Quixey has to provide its own.
+There is no mechanism to sync the Quixey DNS (which has Quixey hostnames) with the AliYun servers (which have AliYun service endpoints) when the AliYun servers change IP address without notification.
+
+# 2014-04-xx
+Scheduled API Downtime: Due to scheduled maintenance, AliYun API is down during US working hours for most of the month.  This does not affect Quixey's ability to server traffic, but severly hinders and in some cases blocks any software deployment or load increases.  
+
+# 2015-01-xx
+Quixey presents "AliYun and Infrastructure as Code" and "Aliyun Top 10 Improvements" documents at DD meeting.
+Attachment: 2015-01-xx-Ali Top 10 Summary.pdf
+Attachment: 2015-01-xx-AliyunTop10Improvements.pdf 
+
+# 2015-02-21
+Quixey provides PDF to Ryan Xu of Top 10 improvements, along with other project and program documents
+Attachment: 2015-02-21-improvements.pdf
+
+# 2014-07-29
+Ryan Xu reports that many problems Quixey faced over the past year are endemic to the business separation among Alibaba, AliYun, AliPay, and
+YunOS, and that Quixey cannot expect quick or even eventual resolution of many of the problems.  Additionally, AliYun's customer base is not
+the fast-moving AWS developers like Quixey using PaaS, and so many features will remain too expensive for AliYun to implement, even if
+they are technically feasible, due to lack of ROI.  Ryan asked me to consider using rack-and-stack inside Alibaba instead of AliYun; he
+agreed that the issues with the AliYun API and the gap analysis document we shared with him were unlikely to be solved and that Quixey
+should consider moving off AliYun, once we demonstrated the QPS requirements that Dr. Jin asked for.
+
+
+# 2015-08-15
+Da Han and Richard Fu of Aliyun respond to Aliyun Top 10 Improvements.  Of the top 10, Item 1 and 2 are reported as done, and item 7 ("Schedule API Downtime") is reported that we should expect "very little" in the future.
+Attachment: 2015-08-17-Response\ to\ Quixey\'s\ proposals_Aliyun_August\ 2015.pdf 
+
+# 2015-08-31
+ABB asks Quixey about number of instances in use.  Quixey responds that there was a spike due to simultaneous testing of V3->V4 tech stack transition and Meizu deployment, so we used the Elastic Compute Service to allocate independent environments, to do this simultaneous, independent testing.  We cut the ECS usage in half shortly after conclusion of these two tests and their deployment to production.
+
