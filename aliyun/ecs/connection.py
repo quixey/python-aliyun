@@ -183,8 +183,9 @@ class EcsConnection(Connection):
             int(resp['InternetMaxBandwidthIn']),
             int(resp['InternetMaxBandwidthOut']),
             dateutil.parser.parse(resp['CreationTime']),
-	    dateutil.parser.parse(resp['ExpiredTime']),
-	    resp['InstanceChargeType'],
+            # ExpiredTime can be an empty string (if instance no ExpiredTime; this is common), and will cause dateutil to throw error
+	        dateutil.parser.parse(resp['ExpiredTime']) if resp['ExpiredTime'] else resp['ExpiredTime'],
+	        resp['InstanceChargeType'],
             resp['Description'],
             resp['ClusterId'],
             [x for x in resp['OperationLocks']['LockReason']],

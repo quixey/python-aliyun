@@ -241,6 +241,42 @@ class GetInstanceTest(EcsConnectionTest):
                          self.conn.get_instance('i1'))
         self.mox.VerifyAll()
 
+    def testSuccessWhenExpiredTimeIsNotSet(self):
+        # In case any one is wondering why the code duplication:
+        # The price of not duplicating seems higher!
+        get_response = {
+            'RegionId': 'r',
+            'InstanceId': 'i1',
+            'InstanceName': 'name',
+            'ImageId': 'image',
+            'InstanceType': 'type',
+            'HostName': 'hostname',
+            'Status': 'running',
+            'InternetChargeType': 'chargetype',
+            'InternetMaxBandwidthIn': '1',
+            'InternetMaxBandwidthOut': '2',
+            'CreationTime': '2014-02-05T00:52:32Z',
+            'ExpiredTime': '', # This is what you get from Alibaba when ExpiredTime is not set
+            'InstanceChargeType': 'PostPaid',
+            'SecurityGroupIds': {'SecurityGroupId': ['sg1', 'sg2']},
+            'PublicIpAddress': {'IpAddress': ['ip1', 'ip2']},
+            'InnerIpAddress': {'IpAddress': ['ip3', 'ip4']},
+            'Description': '',
+            'ClusterId': '',
+            'OperationLocks': {'LockReason': []},
+            'ZoneId': 'z'
+        }
+        expected_result = Instance(
+            'i1', 'name', 'image', 'r', 'type', 'hostname', 'running',
+            ['sg1', 'sg2'], ['ip1', 'ip2'], ['ip3', 'ip4'], 'chargetype', 1, 2,
+            dateutil.parser.parse('2014-02-05T00:52:32Z'), '', 'PostPaid', '', '', [], 'z')
+        self.conn.get({'Action': 'DescribeInstanceAttribute',
+                       'InstanceId': 'i1'}).AndReturn(get_response)
+
+        self.mox.ReplayAll()
+        self.assertEqual(expected_result,
+                         self.conn.get_instance('i1'))
+        self.mox.VerifyAll()
 
 class InstanceActionsTest(EcsConnectionTest):
 
