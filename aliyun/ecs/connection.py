@@ -539,7 +539,7 @@ class EcsConnection(Connection):
 
     def create_instance(
             self, image_id, instance_type,
-            security_group_id, instance_name=None,
+            security_group_id, instance_name=None, key_pair_name='',
             internet_max_bandwidth_in=None,
             internet_max_bandwidth_out=None,
             hostname=None, password=None, system_disk_type=None,
@@ -555,6 +555,7 @@ class EcsConnection(Connection):
                 To see options use describe_instance_types.
             security_group_id (str): The security group id to associate.
             instance_name (str): The name to use for the instance.
+            key_pair_name (str): The SSH key pair to use for SSHing to the instance
             internet_max_bandwidth_in (int): Max bandwidth in.
             internet_max_bandwidth_out (int): Max bandwidth out.
 	    instance_charge_type (str): The charge type of the instance, 'PrePaid' or 'PostPaid'.
@@ -619,6 +620,8 @@ class EcsConnection(Connection):
         }
         if instance_name:
             params['InstanceName'] = instance_name
+        if key_pair_name:
+            params['KeyPairName'] = key_pair_name
         if internet_max_bandwidth_in:
             params['InternetMaxBandwidthIn'] = str(internet_max_bandwidth_in)
         if internet_max_bandwidth_out:
