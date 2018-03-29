@@ -15,8 +15,8 @@
 MAKEFLAGS = --no-print-directory --always-make --silent
 MAKE = make $(MAKEFLAGS)
 
-VENV_NAME = python-aliyun
-VENV_PATH = ~/.virtualenvs/$(VENV_NAME)
+VENV_NAME = django_proj
+VENV_PATH = ~/Envs/$(VENV_NAME)
 VENV_ACTIVATE = . $(VENV_PATH)/bin/activate
 
 BUILD=0
