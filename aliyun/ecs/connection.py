@@ -663,6 +663,137 @@ class EcsConnection(Connection):
 
         return self.get(params)['InstanceId']
 
+    def run_instances(
+            self, image_id, instance_type,
+            security_group_id, vswitch_id,
+            amount=1,
+            instance_name=None, key_pair_name='',
+            internet_max_bandwidth_in=None,
+            internet_max_bandwidth_out=None,
+            hostname=None, password=None, system_disk_type=None,
+            internet_charge_type=None,
+            instance_charge_type='PostPaid', io_optimized=None,
+            data_disks=None, description=None, zone_id=None):
+        """Create an instance.
+
+        Args:
+            image_id (str): Which image id to use.
+            instance_type (str): The type of the instance.
+                To see options use describe_instance_types.
+            security_group_id (str): The security group id to associate.
+            instance_name (str): The name to use for the instance.
+            key_pair_name (str): The SSH key pair to use for SSHing to the instance
+            internet_max_bandwidth_in (int): Max bandwidth in.
+            internet_max_bandwidth_out (int): Max bandwidth out.
+	    instance_charge_type (str): The charge type of the instance, 'PrePaid' or 'PostPaid'.
+	    period (int): The time period of the 'PrePaid' instances.
+	    io_optimized (str): Specify if the instance is IO optimized instance
+	                        - None (default)
+			        - optimized
+            hostname (str): The hostname to assign.
+            password (str): The root password to assign.
+            system_disk_type (str): cloud, ephemeral or ephemeral_hio.
+                Default: cloud.
+            internet_charge_type (str): PayByBandwidth or PayByTraffic.
+                Default: PayByBandwidth.
+            data_disks (list): List of *args or **kwargs to :class:`DiskMapping`
+            description (str): A long description of the instance.
+            zone_id (str): An Availability Zone in the region to put the instance in.
+                E.g. 'cn-hangzhou-b'
+
+        Returns:
+            The id of the instance created.
+
+        The data_disks argument is passed as *args (if not a dict) or **kwargs
+        (if it is a dict) to create a new :class:`.model.DiskMapping`. To create
+        two fully-specified data disks::
+
+            [{
+               'category': 'ephemeral',
+               'size': 200,
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            },
+            {
+               'category': 'ephemeral',
+               'snapshot_id': 'snap-1234',
+               'name': 'mydiskname',
+               'description': 'my disk description',
+               'device': '/dev/xvdb'
+            }]
+
+        To create two minimally-specified data disks of 2000GB each:::
+
+            [('cloud', 2000), ('cloud', 2000)]
+
+        The API supports up to 4 additional disks, each up to 2000GB, so to get
+        the maximum disk space at instance creation, this should do the trick::
+
+            [
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000},
+                {'category': 'cloud', 'size': 2000}
+            ]
+        """
+
+        if data_disks is None:
+            data_disks = []
+        params = {
+            'Action': 'RunInstances',
+            'ImageId': image_id,
+            'InstanceType': instance_type,
+            'SecurityGroupId': security_group_id,
+            'VSwitchId': vswitch_id,
+            'Amount':amount,
+        }
+        if instance_name:
+            params['InstanceName'] = instance_name
+        if key_pair_name:
+            params['KeyPairName'] = key_pair_name
+        if internet_max_bandwidth_in:
+            params['InternetMaxBandwidthIn'] = str(internet_max_bandwidth_in)
+        if internet_max_bandwidth_out:
+            params['InternetMaxBandwidthOut'] = str(internet_max_bandwidth_out)
+	if io_optimized:
+	    params['IoOptimized'] = io_optimized
+        if hostname:
+            params['HostName'] = hostname
+        if password:
+            params['Password'] = password
+        if system_disk_type:
+            params['SystemDisk.Category'] = system_disk_type
+        if internet_charge_type:
+            params['InternetChargeType'] = internet_charge_type
+        # Instance charge type & period
+        if instance_charge_type == 'PostPaid':
+            params['InstanceChargeType'] = 'PostPaid'
+        elif instance_charge_type == 'PrePaid':
+            params['InstanceChargeType'] = 'PrePaid'
+            if not period or period not in [1,2,3,4,5,6,7,8,9,12,24,36]:
+                exit("ERROR: PrePaid instances Must have a predefined period, in month [ 1-9, 12, 24, 36 ]")
+            else:
+                params['Period'] = period
+        else:
+            exit("InstanceChargeType is null. It is either PrePaid, or PostPaid")
+        if data_disks:
+            for i, disk in enumerate(data_disks):
+                if isinstance(disk, dict):
+                    ddisk = DiskMapping(**disk)
+                else:
+                    ddisk = DiskMapping(*disk)
+
+                params.update(ddisk.api_dict(i+1))
+
+        if description:
+            params['Description'] = description
+        if zone_id:
+            params['ZoneId'] = zone_id
+
+        instances = self.get(params)
+        return instances['InstanceIdSets']['InstanceIdSet'][0]
+
     def allocate_public_ip(self, instance_id):
         """Allocate and assign a public IP address to an instance.
 
