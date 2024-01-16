@@ -1,6 +1,15 @@
 python-aliyun
 =============
 
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
+
 Python API wrapper for the Aliyun cloud. This project is starting to use [git-flow](http://nvie.com/posts/a-successful-git-branching-model/).
 
 Installing
